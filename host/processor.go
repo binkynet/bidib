@@ -39,4 +39,17 @@ func (h *host) processMessage(mType bidib.MessageType, addr bidib.Address, seqNu
 	log.Trace().
 		Str("msg", fmt.Sprintf("%s", pm)).
 		Msg("processed message for node")
+
+	// Post process specific messages
+	switch pm.(type) {
+	case messages.NodeTabCount:
+		// If we get a new node table count, disable the interface.
+		h.intfNode.sendMessages(messages.SysDisable{})
+	case messages.NodeTab:
+		// If we have the complete (recursive) node tables,
+		// we will enable the interface.
+		if h.intfNode.hasCompleteNodeTableRecursive() {
+			h.intfNode.sendMessages(messages.SysEnable{})
+		}
+	}
 }

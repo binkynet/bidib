@@ -90,9 +90,24 @@ func (h *host) Close() error {
 // Gets the node with the given address.
 // Returns nil, false if not found
 func (h *host) GetNode(addr bidib.Address) (*Node, bool) {
-	if addr.GetLength() == 0 {
-		return h.intfNode, true
+	n := h.intfNode
+	for idx := 0; idx < 4; idx++ {
+		if addr[idx] == 0 {
+			// We found our node
+			return n, true
+		}
+		// Go to child nodes
+		childFound := false
+		for _, child := range n.table.children {
+			if child != nil && child.Address.EqualsOrContains(addr) {
+				n = child
+				childFound = true
+				break
+			}
+		}
+		if !childFound {
+			return nil, false
+		}
 	}
-	// TODO recurse into node
-	return nil, false
+	return n, true
 }

@@ -29,6 +29,15 @@ func NewAddress(addr ...uint8) (Address, error) {
 	return result, nil
 }
 
+// MustNewAddress constructs a new address, panicing in case of errors
+func MustNewAddress(addr ...uint8) Address {
+	a, err := NewAddress(addr...)
+	if err != nil {
+		panic(err)
+	}
+	return a
+}
+
 // GetLength returns the length of the address stack (the amount of leading non-zero elements).
 func (a Address) GetLength() uint8 {
 	result := uint8(0)
@@ -58,4 +67,33 @@ func (a Address) String() string {
 	}
 	return strconv.Itoa(int(a[0])) + "," + strconv.Itoa(int(a[1])) +
 		"," + strconv.Itoa(int(a[2])) + "," + strconv.Itoa(int(a[3]))
+}
+
+// Append a local node address to the given address and return the new child address.
+func (a Address) Append(childNodeAddr uint8) Address {
+	result := a
+	result[a.GetLength()] = childNodeAddr
+	return result
+}
+
+// Equals returns true if both addresses are identical
+func (a Address) Equals(other Address) bool {
+	for i, x := range a {
+		if other[i] != x {
+			return false
+		}
+	}
+	return true
+}
+
+// EqualsOrContains returns true if the given address is either equal to the
+// given other address, or the given other address is a child (or grant child)
+// of the given address.
+func (a Address) EqualsOrContains(other Address) bool {
+	for i, x := range a {
+		if x != 0 && other[i] != x {
+			return false
+		}
+	}
+	return true
 }

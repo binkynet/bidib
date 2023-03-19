@@ -53,7 +53,7 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 	case bidib.MSG_SYS_CLOCK:
 		return decodeSysClock(addr, data)
 
-	// System upstream
+	// System common upstream
 	case bidib.MSG_SYS_MAGIC:
 		return decodeSysMagic(addr, data)
 	case bidib.MSG_SYS_PONG:
@@ -70,6 +70,24 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 		return decodeSysIdentityState(addr, data)
 	case bidib.MSG_SYS_ERROR:
 		return decodeSysError(addr, data)
+
+	// System bus management upstream
+	case bidib.MSG_NODETAB_COUNT:
+		return decodeNodeTabCount(addr, data)
+	case bidib.MSG_NODETAB:
+		return decodeNodeTab(addr, data)
+	case bidib.MSG_PKT_CAPACITY:
+		return decodePktCapacity(addr, data)
+	case bidib.MSG_NODE_NA:
+		return decodeNodeNa(addr, data)
+	case bidib.MSG_NODE_LOST:
+		return decodeNodeLost(addr, data)
+	case bidib.MSG_NODE_NEW:
+		return decodeNodeNew(addr, data)
+	case bidib.MSG_STALL:
+		return decodeStall(addr, data)
+	case bidib.MSG_LOGON:
+		return decodeLocalLogon(addr, data)
 
 	default:
 		return nil, fmt.Errorf("failed to parse message of type %s", mType)
