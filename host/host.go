@@ -38,13 +38,16 @@ func New(cfg Config, log zerolog.Logger) (Host, error) {
 // host implements the Bidib host process.
 type host struct {
 	Config
-	log  zerolog.Logger
-	conn transport.Connection
+	log      zerolog.Logger
+	conn     transport.Connection
+	intfNode *Node
 }
 
 // Open the transport connection and start the process
 func (h *host) start() error {
 	log := h.log
+
+	// Prepare transport connection
 	if sCfg := h.Serial; sCfg != nil {
 		// Connect using serial port
 		conn, err := serial.New(*sCfg, h.log, h.processMessage)
@@ -57,6 +60,9 @@ func (h *host) start() error {
 		return fmt.Errorf("no transport protocol configured")
 	}
 
+	// Build interface node
+	h.intfNode = newNode(bidib.InterfaceAddress(), h.conn, log)
+
 	// Disable all communication
 	log.Debug().Msg("Disabling interface...")
 	if err := h.conn.SendMessages([]bidib.Message{messages.SysDisable{}}, 0); err != nil {
@@ -64,13 +70,9 @@ func (h *host) start() error {
 	}
 
 	// Get basic information of interface node
-	log.Debug().Msg("Getting magic of interface...")
-	if err := h.conn.SendMessages([]bidib.Message{messages.SysGetMagic{}}, 0); err != nil {
-		return fmt.Errorf("faled to get magic: %w", err)
-	}
-	log.Debug().Msg("Getting sw version of interface...")
-	if err := h.conn.SendMessages([]bidib.Message{messages.SysGetSwVersion{}}, 0); err != nil {
-		return fmt.Errorf("faled to get sw version: %w", err)
+	log.Debug().Msg("Getting basic properties of interface...")
+	if err := h.intfNode.readNodeProperties(); err != nil {
+		return fmt.Errorf("failed to get basic node properties: %w", err)
 	}
 
 	return nil
@@ -83,4 +85,14 @@ func (h *host) Close() error {
 		return conn.Close()
 	}
 	return nil
+}
+
+// Gets the node with the given address.
+// Returns nil, false if not found
+func (h *host) GetNode(addr bidib.Address) (*Node, bool) {
+	if addr.GetLength() == 0 {
+		return h.intfNode, true
+	}
+	// TODO recurse into node
+	return nil, false
 }

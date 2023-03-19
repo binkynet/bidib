@@ -135,22 +135,22 @@ func decodeSysPVersion(addr bidib.Address, data []byte) (SysPVersion, error) {
 type SysUniqueID struct {
 	BaseMessage
 	UniqueID    bidib.UniqueID
-	Fingerprint uint32
+	FingerPrint uint32
 }
 
 func (m SysUniqueID) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
-	if m.Fingerprint == 0 {
+	if m.FingerPrint == 0 {
 		bidib.EncodeMessage(write, bidib.MSG_SYS_UNIQUE_ID, m.Address, seqNum, m.UniqueID[:])
 	} else {
 		data := [7 + 4]byte{}
 		copy(data[0:], m.UniqueID[:])
-		writeUint32(data[7:], m.Fingerprint)
+		writeUint32(data[7:], m.FingerPrint)
 		bidib.EncodeMessage(write, bidib.MSG_SYS_UNIQUE_ID, m.Address, seqNum, data[:])
 	}
 }
 
 func (m SysUniqueID) String() string {
-	return fmt.Sprintf("%T addr=%s uid=%s fingerprint=0x%08x", m, m.Address, m.UniqueID, m.Fingerprint)
+	return fmt.Sprintf("%T addr=%s uid=%s fingerprint=0x%08x", m, m.Address, m.UniqueID, m.FingerPrint)
 }
 
 func decodeSysUniqueID(addr bidib.Address, data []byte) (SysUniqueID, error) {
@@ -161,7 +161,7 @@ func decodeSysUniqueID(addr bidib.Address, data []byte) (SysUniqueID, error) {
 	} else if err := validateDataLength(data, 7+4); err != nil {
 		return result, err
 	} else {
-		result.Fingerprint = readUint32(data[7:])
+		result.FingerPrint = readUint32(data[7:])
 	}
 	return result, nil
 }

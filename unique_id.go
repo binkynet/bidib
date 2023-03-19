@@ -1,6 +1,9 @@
 package bidib
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 // Each node has a distinct identifer, this number is called Unique-ID. The Unique-ID contains 7 bytes:
 type UniqueID [7]byte
@@ -11,8 +14,8 @@ type UniqueID [7]byte
 // If a node has implemented commands of a particular class, the appropriate class bit must be set as well.
 // Conversely, it must know the commands of the announced classes and answer them correctly.
 // Even if in the current configuration no objects are available, it should register the class and yield 0 for the count.
-func (uid UniqueID) ClassID() uint8 {
-	return uid[0]
+func (uid UniqueID) ClassID() ClassID {
+	return ClassID(uid[0])
 }
 
 // ClassID Extension; this byte is reserved and must be coded with 0.
@@ -35,4 +38,9 @@ func (uid UniqueID) VendorID() uint8 {
 // If the feature FEATURE_RELEVANT_PID_BITS doesn't exist, the default of 16 bits / 16 bits is used.
 func (uid UniqueID) ProductID() uint32 {
 	return binary.LittleEndian.Uint32(uid[3:])
+}
+
+// String convers to a human readable string
+func (uid UniqueID) String() string {
+	return fmt.Sprintf("class=[%s], vendor=0x%02x, product=0x%04x", uid.ClassID(), uid.VendorID(), uid.ProductID())
 }
