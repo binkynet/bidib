@@ -89,6 +89,14 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 	case bidib.MSG_LOGON:
 		return decodeLocalLogon(addr, data)
 
+	// Commandstation downstream
+	case bidib.MSG_CS_ALLOCATE:
+		return decodeCsAllocate(addr, data)
+	case bidib.MSG_CS_SET_STATE:
+		return decodeCsSetState(addr, data)
+	case bidib.MSG_CS_DRIVE:
+		return decodeCsDrive(addr, data)
+
 	default:
 		return nil, fmt.Errorf("failed to parse message of type %s", mType)
 	}
