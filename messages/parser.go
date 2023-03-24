@@ -9,7 +9,7 @@ import (
 // Parse a message
 func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNumber, data []byte) (bidib.Message, error) {
 	switch mType {
-	// System common downstream
+	// System common downlink
 	case bidib.MSG_SYS_GET_MAGIC:
 		return decodeSysGetMagic(addr, data)
 	case bidib.MSG_SYS_GET_P_VERSION:
@@ -33,7 +33,7 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 	case bidib.MSG_LOCAL_SYNC:
 		return decodeLocalSync(addr, data)
 
-	// System bus management downstream
+	// System bus management downlink
 	case bidib.MSG_SYS_RESET:
 		return decodeSysReset(addr, data)
 	case bidib.MSG_NODETAB_GETALL:
@@ -49,11 +49,35 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 	case bidib.MSG_LOGON_REJECTED:
 		return decodeLocalLogonRejected(addr, data)
 
-	// System layout management downstream
+	// System layout management downlink
 	case bidib.MSG_SYS_CLOCK:
 		return decodeSysClock(addr, data)
 
-	// System common upstream
+	// Feature querying downlink
+	case bidib.MSG_FEATURE_GETALL:
+		return decodeFeatureGetAll(addr, data)
+	case bidib.MSG_FEATURE_GETNEXT:
+		return decodeFeatureGetNext(addr, data)
+	case bidib.MSG_FEATURE_GET:
+		return decodeFeatureGet(addr, data)
+	case bidib.MSG_FEATURE_SET:
+		return decodeFeatureSet(addr, data)
+
+	// Vendor downlink
+	case bidib.MSG_VENDOR_ENABLE:
+		return decodeVendorEnable(addr, data)
+	case bidib.MSG_VENDOR_DISABLE:
+		return decodeVendorDisable(addr, data)
+	case bidib.MSG_VENDOR_SET:
+		return decodeVendorSet(addr, data)
+	case bidib.MSG_VENDOR_GET:
+		return decodeVendorGet(addr, data)
+	case bidib.MSG_STRING_SET:
+		return decodeStringSet(addr, data)
+	case bidib.MSG_STRING_GET:
+		return decodeStringGet(addr, data)
+
+	// System common uplink
 	case bidib.MSG_SYS_MAGIC:
 		return decodeSysMagic(addr, data)
 	case bidib.MSG_SYS_PONG:
@@ -71,7 +95,7 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 	case bidib.MSG_SYS_ERROR:
 		return decodeSysError(addr, data)
 
-	// System bus management upstream
+	// System bus management uplink
 	case bidib.MSG_NODETAB_COUNT:
 		return decodeNodeTabCount(addr, data)
 	case bidib.MSG_NODETAB:
@@ -89,7 +113,23 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 	case bidib.MSG_LOGON:
 		return decodeLocalLogon(addr, data)
 
-	// Commandstation downstream
+	// Feature querying uplink
+	case bidib.MSG_FEATURE:
+		return decodeFeature(addr, data)
+	case bidib.MSG_FEATURE_NA:
+		return decodeFeatureNa(addr, data)
+	case bidib.MSG_FEATURE_COUNT:
+		return decodeFeatureCount(addr, data)
+
+	// Vendor uplink
+	case bidib.MSG_VENDOR:
+		return decodeVendor(addr, data)
+	case bidib.MSG_VENDOR_ACK:
+		return decodeVendorAck(addr, data)
+	case bidib.MSG_STRING:
+		return decodeString(addr, data)
+
+	// Commandstation downlink
 	case bidib.MSG_CS_ALLOCATE:
 		return decodeCsAllocate(addr, data)
 	case bidib.MSG_CS_SET_STATE:

@@ -257,24 +257,24 @@ func decodeSysIdentityState(addr bidib.Address, data []byte) (SysIdentityState, 
 // Depending on the error, the processing of the data will not be possible any more.
 type SysError struct {
 	BaseMessage
-	Error uint8
+	Error bidib.ErrorCode
 }
 
 func (m SysError) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
-	data := []byte{m.Error}
+	data := []byte{byte(m.Error)}
 	bidib.EncodeMessage(write, bidib.MSG_SYS_ERROR, m.Address, seqNum, data)
 }
 
 func (m SysError) String() string {
-	return fmt.Sprintf("%T addr=%s value=0x%02x", m, m.Address, m.Error)
+	return fmt.Sprintf("%T addr=%s error=0x%02x", m, m.Address, m.Error)
 }
 
 func decodeSysError(addr bidib.Address, data []byte) (SysError, error) {
 	var result SysError
-	if err := validateDataLength(data, 1); err != nil {
+	if err := validateMinDataLength(data, 1); err != nil {
 		return result, err
 	}
 	result.Address = addr
-	result.Error = data[0]
+	result.Error = bidib.ErrorCode(data[0])
 	return result, nil
 }

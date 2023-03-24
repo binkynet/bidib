@@ -14,6 +14,15 @@ func validateDataLength(data []byte, expectedLength int) error {
 	return nil
 }
 
+// validateMinDataLength checks the length of the given data against the given expected length
+func validateMinDataLength(data []byte, expectedMinLength int) error {
+	l := len(data)
+	if l < expectedMinLength {
+		return fmt.Errorf("invalid data length; got %d, expected >= %d", l, expectedMinLength)
+	}
+	return nil
+}
+
 // readUint16 read a 16-bit value from the given data slice
 func readUint16(data []byte) uint16 {
 	return binary.LittleEndian.Uint16(data)
