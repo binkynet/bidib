@@ -101,6 +101,10 @@ const (
 	MSG_CS_POM       = (MSG_DGEN + 0x07) // 1..4:addr/did, 5:MID, 6:opcode, 7:cv_l, 8:cv_h, 9:cv_x, 10..13: data
 	MSG_CS_RCPLUS    = (MSG_DGEN + 0x08) // 1:opcode, [2..n:parameter]
 
+	// #define MSG_CS_QUERY (MSG_DGEN + 0x09) // 1:what (1=loco list, 2... tbd.)
+	// experimental
+	MSG_CS_QUERY = MSG_DGEN + 0x0A
+
 	//-- service mode
 	MSG_CS_PROG = (MSG_DGEN + 0x0F) // 1:opcode, 2:cv_l, 3:cv_h, 4: data
 
@@ -738,25 +742,25 @@ const (
 	BIDIB_CS_DRIVE_F13F20_BIT = (1 << 4)
 	BIDIB_CS_DRIVE_F21F28_BIT = (1 << 5)
 
-	BIDIB_CS_POM_RD_BLOCK  = 0 // bit 0,1: CC-Bits
-	BIDIB_CS_POM_RD_BYTE   = 1 // bit 2,3: no. of bytes to write (-1)
-	BIDIB_CS_POM_WR_BIT    = 2 // bit 6,7: standard pom/short form/xpom/reserved
-	BIDIB_CS_POM_WR_BYTE   = 3
-	BIDIB_CS_XWR_BYTE1     = 0x43
-	BIDIB_CS_XWR_BYTE2     = 0x47
-	BIDIB_CS_xPOM_reserved = 0x80
-	BIDIB_CS_xPOM_RD_BLOCK = 0x81
-	BIDIB_CS_xPOM_WR_BIT   = 0x82
-	BIDIB_CS_xPOM_WR_BYTE1 = 0x83
-	BIDIB_CS_xPOM_WR_BYTE2 = 0x87
-	BIDIB_CS_xPOM_WR_BYTE3 = 0x8B
-	BIDIB_CS_xPOM_WR_BYTE4 = 0x8F
+	BIDIB_CS_POM_RD_BLOCK  CsPomOpCode = 0 // bit 0,1: CC-Bits
+	BIDIB_CS_POM_RD_BYTE   CsPomOpCode = 1 // bit 2,3: no. of bytes to write (-1)
+	BIDIB_CS_POM_WR_BIT    CsPomOpCode = 2 // bit 6,7: standard pom/short form/xpom/reserved
+	BIDIB_CS_POM_WR_BYTE   CsPomOpCode = 3
+	BIDIB_CS_XWR_BYTE1     CsPomOpCode = 0x43
+	BIDIB_CS_XWR_BYTE2     CsPomOpCode = 0x47
+	BIDIB_CS_xPOM_reserved CsPomOpCode = 0x80
+	BIDIB_CS_xPOM_RD_BLOCK CsPomOpCode = 0x81
+	BIDIB_CS_xPOM_WR_BIT   CsPomOpCode = 0x82
+	BIDIB_CS_xPOM_WR_BYTE1 CsPomOpCode = 0x83
+	BIDIB_CS_xPOM_WR_BYTE2 CsPomOpCode = 0x87
+	BIDIB_CS_xPOM_WR_BYTE3 CsPomOpCode = 0x8B
+	BIDIB_CS_xPOM_WR_BYTE4 CsPomOpCode = 0x8F
 
-	BIDIB_CS_PROG_BREAK    = 0 // service mode commands (MSG_CS_PROG)
-	BIDIB_CS_PROG_QUERY    = 1
-	BIDIB_CS_PROG_RD_BYTE  = 2
-	BIDIB_CS_PROG_RDWR_BIT = 3
-	BIDIB_CS_PROG_WR_BYTE  = 4
+	BIDIB_CS_PROG_BREAK    CsProgOpCode = 0 // service mode commands (MSG_CS_PROG)
+	BIDIB_CS_PROG_QUERY    CsProgOpCode = 1
+	BIDIB_CS_PROG_RD_BYTE  CsProgOpCode = 2
+	BIDIB_CS_PROG_RDWR_BIT CsProgOpCode = 3
+	BIDIB_CS_PROG_WR_BYTE  CsProgOpCode = 4
 
 	BIDIB_CS_PROG_START         = 0x00 // service mode answer (MSG_CS_PROG_STATE)
 	BIDIB_CS_PROG_RUNNING       = 0x01 // generic rule:  MSB: 0: running, 1: finished
