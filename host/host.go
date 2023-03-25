@@ -1,6 +1,7 @@
 package host
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/rs/zerolog"
@@ -13,6 +14,13 @@ import (
 
 // Host defines external interface of a Bidib host process.
 type Host interface {
+	// Returns the root of the node tree
+	GetRootNode() *Node
+	// Gets the node with the given address.
+	// Returns nil, false if not found
+	GetNode(addr bidib.Address) (*Node, bool)
+	// Register a callback that gets invoked on every node change
+	RegisterNodeChanged(func(*Node)) context.CancelFunc
 	// Close the connections
 	Close() error
 }
@@ -38,9 +46,10 @@ func New(cfg Config, log zerolog.Logger) (Host, error) {
 // host implements the Bidib host process.
 type host struct {
 	Config
-	log      zerolog.Logger
-	conn     transport.Connection
-	intfNode *Node
+	log              zerolog.Logger
+	conn             transport.Connection
+	intfNode         *Node
+	nodeChangedEvent Event[*Node]
 }
 
 // Open the transport connection and start the process
@@ -61,7 +70,7 @@ func (h *host) start() error {
 	}
 
 	// Build interface node
-	h.intfNode = newNode(bidib.InterfaceAddress(), h.conn, log)
+	h.intfNode = newNode(bidib.InterfaceAddress(), h, h.conn, log)
 
 	// Disable all communication
 	log.Debug().Msg("Disabling interface...")
@@ -75,6 +84,11 @@ func (h *host) start() error {
 		return fmt.Errorf("failed to get basic node properties: %w", err)
 	}
 
+	log.Debug().Msg("Getting features of interface...")
+	if err := h.intfNode.readNodeFeatures(); err != nil {
+		return fmt.Errorf("failed to get features of interface: %w", err)
+	}
+
 	return nil
 }
 
@@ -85,6 +99,11 @@ func (h *host) Close() error {
 		return conn.Close()
 	}
 	return nil
+}
+
+// Returns the root of the node tree
+func (h *host) GetRootNode() *Node {
+	return h.intfNode
 }
 
 // Gets the node with the given address.
@@ -110,4 +129,15 @@ func (h *host) GetNode(addr bidib.Address) (*Node, bool) {
 		}
 	}
 	return n, true
+}
+
+// Register a callback that gets invoked on every node change
+func (h *host) RegisterNodeChanged(handler func(*Node)) context.CancelFunc {
+	return h.nodeChangedEvent.Register(handler)
+}
+
+// Call all node changed handlers
+func (h *host) invokeNodeChanged(n *Node) {
+	h.log.Debug().Str("addr", n.Address.String()).Msg("invokeNodeChanged")
+	h.nodeChangedEvent.Invoke(n)
 }

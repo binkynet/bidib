@@ -53,20 +53,20 @@ func (a Address) GetLength() uint8 {
 // String converts an address into a readable string
 func (a Address) String() string {
 	if a[0] == 0 {
-		return ""
+		return "[]"
 	}
 	if a[1] == 0 {
-		return strconv.Itoa(int(a[0]))
+		return "[" + strconv.Itoa(int(a[0])) + "]"
 	}
 	if a[2] == 0 {
-		return strconv.Itoa(int(a[0])) + "," + strconv.Itoa(int(a[1]))
+		return "[" + strconv.Itoa(int(a[0])) + "," + strconv.Itoa(int(a[1])) + "]"
 	}
 	if a[3] == 0 {
-		return strconv.Itoa(int(a[0])) + "," + strconv.Itoa(int(a[1])) +
-			"," + strconv.Itoa(int(a[2]))
+		return "[" + strconv.Itoa(int(a[0])) + "," + strconv.Itoa(int(a[1])) +
+			"," + strconv.Itoa(int(a[2])) + "]"
 	}
-	return strconv.Itoa(int(a[0])) + "," + strconv.Itoa(int(a[1])) +
-		"," + strconv.Itoa(int(a[2])) + "," + strconv.Itoa(int(a[3]))
+	return "[" + strconv.Itoa(int(a[0])) + "," + strconv.Itoa(int(a[1])) +
+		"," + strconv.Itoa(int(a[2])) + "," + strconv.Itoa(int(a[3])) + "]"
 }
 
 // Append a local node address to the given address and return the new child address.
@@ -74,6 +74,22 @@ func (a Address) Append(childNodeAddr uint8) Address {
 	result := a
 	result[a.GetLength()] = childNodeAddr
 	return result
+}
+
+// Returns true if the given address is not the interface address.
+func (a Address) HasParent() bool {
+	return a[0] != 0
+}
+
+// Returns the address of the parent of the node with given address.
+func (a Address) Parent() Address {
+	l := a.GetLength()
+	if l > 0 {
+		result := a
+		result[l-1] = 0
+		return result
+	}
+	return a
 }
 
 // Equals returns true if both addresses are identical

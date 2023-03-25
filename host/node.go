@@ -18,6 +18,8 @@ type Node struct {
 	// Magic of the node
 	Magic uint16
 
+	// Host containing this node
+	host *host
 	// connection used to communicate with the node
 	conn transport.Connection
 	// logger
@@ -33,14 +35,25 @@ type Node struct {
 		// Child nodes
 		children []*Node
 	}
+	features map[bidib.FeatureID]uint8
 }
 
 // newNode constructs a new node.
-func newNode(addr bidib.Address, conn transport.Connection, log zerolog.Logger) *Node {
+func newNode(addr bidib.Address, host *host, conn transport.Connection, log zerolog.Logger) *Node {
 	return &Node{
+		host:    host,
 		conn:    conn,
 		Address: addr,
 		log:     log.With().Str("addr", addr.String()).Logger(),
+	}
+}
+
+// ForEachChild calls the given function for each (direct) child of this node.
+func (n *Node) ForEachChild(cb func(*Node)) {
+	for _, child := range n.table.children {
+		if child != nil {
+			cb(child)
+		}
 	}
 }
 
@@ -50,6 +63,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 	switch m := m.(type) {
 	case messages.SysMagic:
 		n.Magic = m.Magic
+		n.host.invokeNodeChanged(n)
 	case messages.SysUniqueID:
 		n.UniqueID = m.UniqueID
 		n.FingerPrint = m.FingerPrint
@@ -57,12 +71,14 @@ func (n *Node) processMessage(m bidib.Message) error {
 		if n.UniqueID.ClassID().HasSubNodes() {
 			n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
 		}
+		n.host.invokeNodeChanged(n)
 	case messages.NodeTabCount:
 		// Reset node table
 		n.table.count = m.TableLength
 		n.table.children = nil
 		// Fetch next node table entry
 		n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
+		n.host.invokeNodeChanged(n)
 	case messages.NodeTab:
 		n.table.version = m.TableVersion
 		if m.NodeAddress == 0 {
@@ -71,15 +87,26 @@ func (n *Node) processMessage(m bidib.Message) error {
 		} else {
 			// Found new child node
 			childAddr := n.Address.Append(m.NodeAddress)
-			child := newNode(childAddr, n.conn, n.log)
+			child := newNode(childAddr, n.host, n.conn, n.log)
 			n.table.children = append(n.table.children, child)
 			// Fetch basic info for child node
 			child.readNodeProperties()
+			child.readNodeFeatures()
 		}
 		// Fetch next node table entry (if any)
 		if !n.hasCompleteNodeTable() {
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
 		}
+		n.host.invokeNodeChanged(n)
+	case messages.FeatureCount:
+		n.features = nil
+		n.sendMessages(messages.FeatureGetNext{BaseMessage: baseMsg})
+	case messages.Feature:
+		if n.features == nil {
+			n.features = make(map[bidib.FeatureID]uint8)
+		}
+		n.features[m.Feature] = m.Value
+		n.sendMessages(messages.FeatureGetNext{BaseMessage: baseMsg})
 	}
 	return nil
 }
@@ -100,8 +127,18 @@ func (n *Node) readNodeProperties() error {
 	)
 }
 
+// readNodeFeatures sends the commands deeded to collect feature information of this node
+func (n *Node) readNodeFeatures() error {
+	baseMsg := messages.BaseMessage{Address: n.Address}
+	return n.sendMessages(messages.FeatureGetAll{BaseMessage: baseMsg})
+}
+
 // hasCompleteNodeTable returns true if the node has a complete list of child nodes.
 func (n *Node) hasCompleteNodeTable() bool {
+	if !n.UniqueID.ClassID().HasSubNodes() {
+		// No subnodes, we're done
+		return true
+	}
 	return n.table.count > 0 && len(n.table.children) == int(n.table.count)
 }
 

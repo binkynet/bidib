@@ -8,22 +8,22 @@ import (
 
 func TestAddressAppend(t *testing.T) {
 	a := MustNewAddress()
-	assert.Equal(t, "", a.String())
+	assert.Equal(t, "[]", a.String())
 
 	a = a.Append(0)
-	assert.Equal(t, "", a.String())
+	assert.Equal(t, "[]", a.String())
 
 	a = a.Append(1)
-	assert.Equal(t, "1", a.String())
+	assert.Equal(t, "[1]", a.String())
 
 	a = a.Append(2)
-	assert.Equal(t, "1,2", a.String())
+	assert.Equal(t, "[1,2]", a.String())
 
 	a = a.Append(3)
-	assert.Equal(t, "1,2,3", a.String())
+	assert.Equal(t, "[1,2,3]", a.String())
 
 	a = a.Append(4)
-	assert.Equal(t, "1,2,3,4", a.String())
+	assert.Equal(t, "[1,2,3,4]", a.String())
 }
 
 func TestAddressEquals(t *testing.T) {

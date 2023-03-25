@@ -49,7 +49,9 @@ func (h *host) processMessage(mType bidib.MessageType, addr bidib.Address, seqNu
 		// If we have the complete (recursive) node tables,
 		// we will enable the interface.
 		if h.intfNode.hasCompleteNodeTableRecursive() {
+			h.log.Info().Msg("Enabling Bidib")
 			h.intfNode.sendMessages(messages.SysEnable{})
+			h.invokeNodeChanged(h.intfNode)
 		}
 	}
 }

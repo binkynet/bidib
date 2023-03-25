@@ -217,11 +217,8 @@ func (sc *serialConnection) receivePacket() {
 		return
 	}
 
-	sc.log.Trace().
-		Str("packet", fmt.Sprintf("%0x", buffer[:bufferIndex])).
-		Msg("Received packet")
 	if crc == 0x00 {
-		sc.log.Trace().Msg("CRC correct, split packet in messages")
+		//sc.log.Trace().Msg("CRC correct, split packet in messages")
 		// Split packet in messages and process them
 		bufferIndex--
 		if err := bidib.SplitPackageAndProcessMessages(buffer[:bufferIndex], sc.processor); err != nil {
@@ -229,6 +226,8 @@ func (sc *serialConnection) receivePacket() {
 			return
 		}
 	} else {
-		sc.log.Warn().Msg("CRC wrong, packet ignored")
+		sc.log.Warn().
+			Str("packet", fmt.Sprintf("%0x", buffer[:bufferIndex])).
+			Msg("CRC wrong, packet ignored")
 	}
 }
