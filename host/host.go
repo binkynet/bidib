@@ -84,11 +84,6 @@ func (h *host) start() error {
 		return fmt.Errorf("failed to get basic node properties: %w", err)
 	}
 
-	log.Debug().Msg("Getting features of interface...")
-	if err := h.intfNode.readNodeFeatures(); err != nil {
-		return fmt.Errorf("failed to get features of interface: %w", err)
-	}
-
 	return nil
 }
 

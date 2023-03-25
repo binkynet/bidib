@@ -14,6 +14,7 @@ const (
 
 func NewNodeTree(h host.Host) NodeTree {
 	m := NodeTree{
+		state:       nodeTreeStateTree,
 		host:        h,
 		list:        list.New(nil, list.NewDefaultDelegate(), 0, 0),
 		nodeChanges: make(chan nodeChangedMsg, 64),
@@ -23,12 +24,21 @@ func NewNodeTree(h host.Host) NodeTree {
 	return m
 }
 
+type nodeTreeState uint8
+
+const (
+	nodeTreeStateTree nodeTreeState = iota
+	nodeTreeStateFeatures
+)
+
 // Application model
 type NodeTree struct {
-	host        host.Host
-	node        *host.Node
-	list        list.Model
-	nodeChanges chan nodeChangedMsg
+	state        nodeTreeState
+	host         host.Host
+	node         *host.Node
+	list         list.Model
+	nodeChanges  chan nodeChangedMsg
+	featureTable FeatureTable
 }
 
 type nodeTreeItem struct {
@@ -100,31 +110,71 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			if item := m.list.SelectedItem(); item != nil {
-				m.node = item.(nodeTreeItem).node
-				m.reloadListItems()
+			if m.state == nodeTreeStateTree {
+				if item := m.list.SelectedItem(); item != nil {
+					selectedNode := item.(nodeTreeItem).node
+					if m.node == selectedNode {
+						m.featureTable = NewFeatureTable(selectedNode)
+						m.state = nodeTreeStateFeatures
+						return m, m.featureTable.Init()
+					} else {
+						m.node = item.(nodeTreeItem).node
+						m.reloadListItems()
+					}
+					return m, nil
+				}
+			}
+		case "esc":
+			if m.state == nodeTreeStateFeatures {
+				m.state = nodeTreeStateTree
 				return m, nil
 			}
+		default:
+			switch m.state {
+			case nodeTreeStateTree:
+				cmds = append(cmds, m.updateList(msg))
+			case nodeTreeStateFeatures:
+				cmds = append(cmds, m.updateFeatureTable(msg))
+			}
 		}
+		return m, tea.Batch(cmds...)
 	case selectCurrentNodeMsg:
 		m.node = msg
 		m.reloadListItems()
 	case nodeChangedMsg:
 		m.reloadListItems()
 		cmds = append(cmds, m.onNodeChanged())
+	default:
+		cmds = append(cmds, m.updateList(msg))
+		cmds = append(cmds, m.updateList(msg))
 	}
-
-	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
-	cmds = append(cmds, cmd)
 
 	return m, tea.Batch(cmds...)
 }
 
+func (m *NodeTree) updateList(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return cmd
+}
+
+func (m *NodeTree) updateFeatureTable(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	m.featureTable, cmd = m.featureTable.Update(msg)
+	return cmd
+}
+
 func (m NodeTree) View() string {
-	return m.list.View()
+	switch m.state {
+	case nodeTreeStateTree:
+		return m.list.View()
+	case nodeTreeStateFeatures:
+		return m.featureTable.View()
+	}
+	return ""
 }
 
 func (m *NodeTree) SetSize(w, h int) {
 	m.list.SetSize(w, h)
+	m.featureTable.SetSize(w, h)
 }

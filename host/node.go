@@ -1,6 +1,8 @@
 package host
 
 import (
+	"sync"
+
 	"github.com/binkynet/bidib"
 	"github.com/binkynet/bidib/messages"
 	"github.com/binkynet/bidib/transport"
@@ -35,7 +37,10 @@ type Node struct {
 		// Child nodes
 		children []*Node
 	}
-	features map[bidib.FeatureID]uint8
+	features struct {
+		mutex sync.RWMutex
+		all   map[bidib.FeatureID]uint8
+	}
 }
 
 // newNode constructs a new node.
@@ -55,6 +60,15 @@ func (n *Node) ForEachChild(cb func(*Node)) {
 			cb(child)
 		}
 	}
+}
+
+// Gets the feature value with given id.
+// Returns value, found
+func (n *Node) GetFeature(feature bidib.FeatureID) (uint8, bool) {
+	n.features.mutex.RLock()
+	defer n.features.mutex.RUnlock()
+	result, ok := n.features.all[feature]
+	return result, ok
 }
 
 // process the message that is targeted for this node.
@@ -91,7 +105,6 @@ func (n *Node) processMessage(m bidib.Message) error {
 			n.table.children = append(n.table.children, child)
 			// Fetch basic info for child node
 			child.readNodeProperties()
-			child.readNodeFeatures()
 		}
 		// Fetch next node table entry (if any)
 		if !n.hasCompleteNodeTable() {
@@ -99,13 +112,17 @@ func (n *Node) processMessage(m bidib.Message) error {
 		}
 		n.host.invokeNodeChanged(n)
 	case messages.FeatureCount:
-		n.features = nil
+		n.features.mutex.Lock()
+		n.features.all = nil
+		n.features.mutex.Unlock()
 		n.sendMessages(messages.FeatureGetNext{BaseMessage: baseMsg})
 	case messages.Feature:
-		if n.features == nil {
-			n.features = make(map[bidib.FeatureID]uint8)
+		n.features.mutex.Lock()
+		if n.features.all == nil {
+			n.features.all = make(map[bidib.FeatureID]uint8)
 		}
-		n.features[m.Feature] = m.Value
+		n.features.all[m.Feature] = m.Value
+		n.features.mutex.Unlock()
 		n.sendMessages(messages.FeatureGetNext{BaseMessage: baseMsg})
 	}
 	return nil
@@ -124,13 +141,8 @@ func (n *Node) readNodeProperties() error {
 	return n.sendMessages(messages.SysGetMagic{BaseMessage: baseMsg},
 		messages.SysGetSwVersion{BaseMessage: baseMsg},
 		messages.SysGetUniqueID{BaseMessage: baseMsg},
+		messages.FeatureGetAll{BaseMessage: baseMsg},
 	)
-}
-
-// readNodeFeatures sends the commands deeded to collect feature information of this node
-func (n *Node) readNodeFeatures() error {
-	baseMsg := messages.BaseMessage{Address: n.Address}
-	return n.sendMessages(messages.FeatureGetAll{BaseMessage: baseMsg})
 }
 
 // hasCompleteNodeTable returns true if the node has a complete list of child nodes.
