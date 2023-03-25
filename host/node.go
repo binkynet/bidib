@@ -36,6 +36,8 @@ type Node struct {
 		count uint8
 		// Child nodes
 		children []*Node
+		// Set when all child nodes are received
+		ready bool
 	}
 	features struct {
 		mutex sync.RWMutex
@@ -90,8 +92,11 @@ func (n *Node) processMessage(m bidib.Message) error {
 		// Reset node table
 		n.table.count = m.TableLength
 		n.table.children = nil
+		n.table.ready = m.TableLength == 0
 		// Fetch next node table entry
-		n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
+		if !n.table.ready {
+			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
+		}
 		n.host.invokeNodeChanged(n)
 	case messages.NodeTab:
 		n.table.version = m.TableVersion
@@ -103,6 +108,9 @@ func (n *Node) processMessage(m bidib.Message) error {
 			childAddr := n.Address.Append(m.NodeAddress)
 			child := newNode(childAddr, n.host, n.conn, n.log)
 			n.table.children = append(n.table.children, child)
+			if len(n.table.children) == int(n.table.count) {
+				n.table.ready = true
+			}
 			// Fetch basic info for child node
 			child.readNodeProperties()
 		}
@@ -130,8 +138,10 @@ func (n *Node) processMessage(m bidib.Message) error {
 
 // sendMessages sends the given messages to the node, updating the sequence number.
 func (n *Node) sendMessages(m ...bidib.Message) error {
-	seqNum := n.lastSeqNum + 1
-	n.lastSeqNum += bidib.SequenceNumber(len(m))
+	seqNum := n.lastSeqNum.Next()
+	for i := 0; i < len(m); i++ {
+		n.lastSeqNum = n.lastSeqNum.Next()
+	}
 	return n.conn.SendMessages(m, seqNum)
 }
 
@@ -151,7 +161,7 @@ func (n *Node) hasCompleteNodeTable() bool {
 		// No subnodes, we're done
 		return true
 	}
-	return n.table.count > 0 && len(n.table.children) == int(n.table.count)
+	return n.table.ready
 }
 
 // hasCompleteNodeTableRecursive returns true if the node has a complete list of child nodes

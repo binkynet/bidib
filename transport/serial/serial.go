@@ -42,11 +42,11 @@ type serialConnection struct {
 	writer    io.Writer
 	read      struct {
 		mutex  sync.Mutex
-		buffer [256]byte
+		buffer [1024]byte
 	}
 	write struct {
 		mutex  sync.Mutex
-		buffer [256]byte
+		buffer [1024]byte
 	}
 	running bool
 }
@@ -83,6 +83,7 @@ func (sc *serialConnection) open() error {
 			continue
 		}
 		// We were able to send a message
+		time.Sleep(time.Millisecond * 500)
 		sc.log.Debug().Msg("SendMessages succeeded")
 		go sc.run()
 		return nil
@@ -136,6 +137,10 @@ func (sc *serialConnection) SendMessages(messages []bidib.Message, seqNum bidib.
 
 	// Encode messages
 	for _, m := range messages {
+		sc.log.Trace().
+			Str("msg", m.String()).
+			Uint8("num", uint8(seqNum)).
+			Msg("encoding message")
 		m.Encode(write, seqNum)
 		seqNum++
 	}

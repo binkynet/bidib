@@ -9,6 +9,7 @@ import (
 type Message interface {
 	// Encode this message
 	Encode(write func(uint8), seqNum SequenceNumber)
+	String() string
 }
 
 // Type of message
@@ -25,6 +26,19 @@ type SequenceNumber uint8
 // String returns a human readable representation of a MessageType.
 func (sn SequenceNumber) String() string {
 	return strconv.Itoa(int(sn))
+}
+
+// Next returns the next sequence number.
+func (sn SequenceNumber) Next() SequenceNumber {
+	if sn == 255 {
+		return 1
+	}
+	return sn + 1
+}
+
+// Reset the sequence number to 0.
+func (sn *SequenceNumber) Reset() {
+	*sn = 0
 }
 
 // MessageProcessor takes decoded raw message information and processes it.
@@ -52,9 +66,14 @@ func SplitPackageAndProcessMessages(src []byte, proc MessageProcessor) error {
 // decodeMessage decodes the given byte slice into the its raw message parts.
 // Returns: type, address, seqNum, data, remaining, error
 func decodeMessage(src []byte) (MessageType, Address, SequenceNumber, []byte, []byte, error) {
-	// Fetch length
+	// Fetch length (this excludes msgLength itself)
 	msgLength := src[0]
+	// Skip msgLength
 	src = src[1:]
+	// Check length
+	if len(src) < int(msgLength) {
+		return 0, Address{}, 0, nil, nil, fmt.Errorf("Invalid message length; got %d expected %d", len(src), msgLength)
+	}
 	remaining := src[msgLength:]
 
 	// Fetch address

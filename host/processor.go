@@ -1,8 +1,6 @@
 package host
 
 import (
-	"fmt"
-
 	"github.com/binkynet/bidib"
 	"github.com/binkynet/bidib/messages"
 )
@@ -37,14 +35,22 @@ func (h *host) processMessage(mType bidib.MessageType, addr bidib.Address, seqNu
 			Msg("failed to process message for node")
 	}
 	log.Trace().
-		Str("msg", fmt.Sprintf("%s", pm)).
+		Str("msg", pm.String()).
 		Msg("processed message for node")
 
 	// Post process specific messages
-	switch pm.(type) {
+	switch msg := pm.(type) {
 	case messages.NodeTabCount:
 		// If we get a new node table count, disable the interface.
-		h.intfNode.sendMessages(messages.SysDisable{})
+		if msg.TableLength > 0 {
+			h.intfNode.sendMessages(messages.SysDisable{})
+		} else if h.intfNode.hasCompleteNodeTableRecursive() {
+			// If we have the complete (recursive) node tables,
+			// we will enable the interface.
+			h.log.Info().Msg("Enabling Bidib")
+			h.intfNode.sendMessages(messages.SysEnable{})
+			h.invokeNodeChanged(h.intfNode)
+		}
 	case messages.NodeTab:
 		// If we have the complete (recursive) node tables,
 		// we will enable the interface.

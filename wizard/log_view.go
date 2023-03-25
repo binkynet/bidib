@@ -3,6 +3,7 @@ package wizard
 import (
 	"bytes"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -65,7 +66,7 @@ func (m LogView) Update(msg tea.Msg) (LogView, tea.Cmd) {
 
 	switch msg.(type) {
 	case logChangedMsg:
-		m.view.SetContent(m.lb.String())
+		m.view.SetContent(strings.TrimSpace(m.lb.String()))
 		return m, m.onChanged()
 	}
 

@@ -74,7 +74,7 @@ func (h *host) start() error {
 
 	// Disable all communication
 	log.Debug().Msg("Disabling interface...")
-	if err := h.conn.SendMessages([]bidib.Message{messages.SysDisable{}}, 0); err != nil {
+	if err := h.conn.SendMessages([]bidib.Message{messages.SysReset{}}, 0); err != nil {
 		return fmt.Errorf("failed to disable interface: %w", err)
 	}
 
