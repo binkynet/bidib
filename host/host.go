@@ -31,11 +31,16 @@ type Config struct {
 	Serial *serial.Config
 }
 
+const (
+	messageQueueBufLen = 64
+)
+
 // New constructs a new host process with given config
 func New(cfg Config, log zerolog.Logger) (Host, error) {
 	h := &host{
-		Config: cfg,
-		log:    log,
+		Config:       cfg,
+		log:          log,
+		messageQueue: make(chan HostMessage, messageQueueBufLen),
 	}
 	if err := h.start(); err != nil {
 		h.Close()
@@ -52,6 +57,8 @@ type host struct {
 	intfNode         *Node
 	disabledState    int32
 	nodeChangedEvent Event[*Node]
+	messageQueue     chan HostMessage
+	cancelQueue      context.CancelFunc
 }
 
 const (
@@ -64,16 +71,22 @@ const (
 func (h *host) start() error {
 	log := h.log
 
+	// Prepare context & start message loop
+	ctx, cancel := context.WithCancel(context.Background())
+	h.cancelQueue = cancel
+	go h.runMessageQueue(ctx)
+
 	// Prepare transport connection
 	if sCfg := h.Serial; sCfg != nil {
 		// Connect using serial port
-		conn, err := serial.New(*sCfg, h.log, h.processMessage)
+		conn, err := serial.New(*sCfg, h.log, h.parseAndQueue)
 		if err != nil {
 			return fmt.Errorf("host failed to initialize serial port: %w", err)
 		}
 		h.conn = conn
 	} else {
 		// No other transport protocol available
+		cancel()
 		return fmt.Errorf("no transport protocol configured")
 	}
 
@@ -83,12 +96,14 @@ func (h *host) start() error {
 	// Disable all communication
 	log.Debug().Msg("Disabling interface...")
 	if err := h.conn.SendMessages([]bidib.Message{messages.SysReset{}}, 0); err != nil {
+		cancel()
 		return fmt.Errorf("failed to disable interface: %w", err)
 	}
 
 	// Get basic information of interface node
 	log.Debug().Msg("Getting basic properties of interface...")
 	if err := h.intfNode.readNodeProperties(); err != nil {
+		cancel()
 		return fmt.Errorf("failed to get basic node properties: %w", err)
 	}
 
@@ -97,11 +112,15 @@ func (h *host) start() error {
 
 // Close any connections
 func (h *host) Close() error {
+	var err error
 	if conn := h.conn; conn != nil {
 		h.conn = nil
-		return conn.Close()
+		err = conn.Close()
 	}
-	return nil
+	if cancel := h.cancelQueue; cancel != nil {
+		cancel()
+	}
+	return err
 }
 
 // Returns the root of the node tree

@@ -226,7 +226,7 @@ func (n *Node) hasCompleteNodeTableRecursive() bool {
 // Set all extensions depending on class ID.
 func (n *Node) setupExtensions() {
 	if n.UniqueID.ClassID().HasDCCSignalGenerator() {
-		n.extensions.cs = &NodeCs{node: n}
+		n.extensions.cs = &NodeCs{Node: n}
 	} else {
 		n.extensions.cs = nil
 	}
