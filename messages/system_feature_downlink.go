@@ -79,7 +79,7 @@ func (m FeatureGet) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
 }
 
 func (m FeatureGet) String() string {
-	return fmt.Sprintf("%T addr=%s feature=0x%02x", m, m.Address, m.Feature)
+	return fmt.Sprintf("%T addr=%s feature=%s", m, m.Address, m.Feature)
 }
 
 func decodeFeatureGet(addr bidib.Address, data []byte) (FeatureGet, error) {
@@ -107,7 +107,7 @@ func (m FeatureSet) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
 }
 
 func (m FeatureSet) String() string {
-	return fmt.Sprintf("%T addr=%s feature=0x%02x value=0x%02x", m, m.Address, m.Feature, m.Value)
+	return fmt.Sprintf("%T addr=%s feature=%s value=0x%02x", m, m.Address, m.Feature, m.Value)
 }
 
 func decodeFeatureSet(addr bidib.Address, data []byte) (FeatureSet, error) {

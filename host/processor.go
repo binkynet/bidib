@@ -33,9 +33,15 @@ func (h *host) processMessage(mType bidib.MessageType, addr bidib.Address, seqNu
 			Interface("msg", pm).
 			Msg("failed to process message for node")
 	}
-	log.Trace().
-		Str("msg", pm.String()).
-		Msg("processed message for node")
+	if mType == bidib.MSG_SYS_ERROR {
+		log.Warn().
+			Str("msg", pm.String()).
+			Msg("Received error from node")
+	} else {
+		log.Trace().
+			Str("msg", pm.String()).
+			Msg("processed message for node")
+	}
 
 	// Post process specific messages
 	switch pm.(type) {

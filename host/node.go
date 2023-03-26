@@ -2,6 +2,7 @@ package host
 
 import (
 	"sync"
+	"time"
 
 	"github.com/binkynet/bidib"
 	"github.com/binkynet/bidib/messages"
@@ -110,8 +111,11 @@ func (n *Node) processMessage(m bidib.Message) error {
 		n.table.children = nil
 		n.table.ready = false
 		if m.TableLength == 0 {
-			// Table does not yet exist, try again
-			n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
+			// Table does not yet exist, try again in a bit
+			go func() {
+				time.Sleep(time.Millisecond * 20)
+				n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
+			}()
 		} else if !n.table.ready {
 			// Fetch next node table entry
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
