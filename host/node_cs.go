@@ -7,7 +7,13 @@ import (
 
 // NodeCs provides commandstation extension on the node.
 type NodeCs struct {
-	node *Node
+	node    *Node
+	csState bidib.CsState
+}
+
+// GetState returns the last reported CS state of the node.
+func (ncs *NodeCs) GetState() bidib.CsState {
+	return ncs.csState
 }
 
 // Set the CS in Off state.
@@ -35,4 +41,14 @@ func (ncs *NodeCs) Stop() {
 		BaseMessage: baseMsg,
 		State:       bidib.BIDIB_CS_STATE_STOP,
 	})
+}
+
+// process the message that is targeted for this node.
+func (ncs *NodeCs) processMessage(m bidib.Message) error {
+	switch m := m.(type) {
+	case messages.CsState:
+		ncs.csState = m.State
+		ncs.node.invokeNodeChanged()
+	}
+	return nil
 }

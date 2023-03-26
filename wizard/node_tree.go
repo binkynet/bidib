@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/binkynet/bidib/host"
 )
@@ -14,6 +15,7 @@ func NewNodeTree(h host.Host) NodeTree {
 		host:        h,
 		list:        list.New(nil, list.NewDefaultDelegate(), 0, 0),
 		menu:        NewNodeMenu(nil),
+		info:        NewNodeInfo(nil),
 		nodeChanges: make(chan nodeChangedMsg, 64),
 	}
 	m.list.Title = "Nodes"
@@ -55,6 +57,7 @@ type NodeTree struct {
 	nodeChanges   chan nodeChangedMsg
 	featureTable  FeatureTable
 	menu          NodeMenu
+	info          NodeInfo
 	keyMap        struct {
 		LevelChange  key.Binding
 		ShowMenu     key.Binding
@@ -78,6 +81,7 @@ func (m *NodeTree) reloadListItems() {
 		})
 	}
 	m.list.SetItems(items)
+	m.info.SetNode(m.getSelectedNode())
 }
 
 type selectCurrentNodeMsg *host.Node
@@ -141,6 +145,10 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 			}
 		}
 		return m, tea.Batch(cmds...)
+	case nodeMenuItemReset:
+		m.getSelectedNode().Reset()
+		m.state = nodeTreeStateTree
+		return m, nil
 	case nodeMenuItemShowFeatures:
 		return m.showFeatures()
 	case nodeMenuItemCsOff:
@@ -160,11 +168,13 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		m.reloadListItems()
 	case nodeChangedMsg:
 		m.reloadListItems()
+		m.info.reloadInfo()
 		cmds = append(cmds, m.onNodeChanged())
 	default:
 		cmds = append(cmds, m.updateList(msg))
 		cmds = append(cmds, m.updateFeatureTable(msg))
 		cmds = append(cmds, m.updateMenu(msg))
+		cmds = append(cmds, m.updateInfo(msg))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -173,6 +183,7 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 func (m *NodeTree) updateList(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
+	m.info.SetNode(m.getSelectedNode())
 	return cmd
 }
 
@@ -185,6 +196,12 @@ func (m *NodeTree) updateFeatureTable(msg tea.Msg) tea.Cmd {
 func (m *NodeTree) updateMenu(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	m.menu, cmd = m.menu.Update(msg)
+	return cmd
+}
+
+func (m *NodeTree) updateInfo(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	m.info, cmd = m.info.Update(msg)
 	return cmd
 }
 
@@ -201,7 +218,11 @@ func (m NodeTree) showFeatures() (NodeTree, tea.Cmd) {
 func (m NodeTree) View() string {
 	switch m.state {
 	case nodeTreeStateTree:
-		return m.list.View()
+		s := lipgloss.NewStyle().Width(m.list.Width())
+		return lipgloss.JoinHorizontal(lipgloss.Top,
+			s.Render(m.list.View()),
+			m.info.View(),
+		)
 	case nodeTreeStateFeatures:
 		return m.featureTable.View()
 	case nodeTreeStateMenu:
@@ -216,7 +237,9 @@ func (m *NodeTree) SetSize(w, h int) {
 }
 
 func (m *NodeTree) applyLayout() {
-	m.list.SetSize(m.width, m.height)
+	listWidth := m.width / 2
+	m.list.SetSize(listWidth, m.height)
+	m.info.SetSize(m.width-listWidth, m.height)
 	m.featureTable.SetSize(m.width, m.height)
 	m.menu.SetSize(m.width, m.height)
 }

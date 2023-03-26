@@ -1,6 +1,8 @@
 package bidib
 
 // CS State flags
+//
+//go:generate stringer -type=CsState
 type CsState uint8
 
 const (

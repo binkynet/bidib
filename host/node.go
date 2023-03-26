@@ -77,6 +77,11 @@ func (n *Node) GetFeature(feature bidib.FeatureID) (uint8, bool) {
 	return result, ok
 }
 
+// Reset sends a reset message to the host.
+func (n *Node) Reset() {
+	n.host.GetRootNode().sendMessages(messages.SysReset{}, messages.SysGetUniqueID{})
+}
+
 // Gets the commandstation extension.
 // If this node does not have a DCC signal generator, the result is nil.
 func (n *Node) Cs() *NodeCs {
@@ -94,7 +99,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 	switch m := m.(type) {
 	case messages.SysMagic:
 		n.Magic = m.Magic
-		n.host.invokeNodeChanged(n)
+		n.invokeNodeChanged()
 	case messages.SysUniqueID:
 		n.UniqueID = m.UniqueID
 		n.FingerPrint = m.FingerPrint
@@ -104,7 +109,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 		if n.UniqueID.ClassID().HasSubNodes() {
 			n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
 		}
-		n.host.invokeNodeChanged(n)
+		n.invokeNodeChanged()
 	case messages.NodeTabCount:
 		// Reset node table
 		n.table.count = m.TableLength
@@ -120,7 +125,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 			// Fetch next node table entry
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
 		}
-		n.host.invokeNodeChanged(n)
+		n.invokeNodeChanged()
 	case messages.NodeTab:
 		n.table.version = m.TableVersion
 		if m.NodeAddress == 0 {
@@ -141,7 +146,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 		if !n.hasCompleteNodeTable() {
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
 		}
-		n.host.invokeNodeChanged(n)
+		n.invokeNodeChanged()
 	case messages.NodeNew:
 		// Reset node table
 		n.table.count = 0
@@ -163,6 +168,12 @@ func (n *Node) processMessage(m bidib.Message) error {
 		n.features.all[m.Feature] = m.Value
 		n.features.mutex.Unlock()
 		n.sendMessages(messages.FeatureGetNext{BaseMessage: baseMsg})
+	default:
+		if n.extensions.cs != nil {
+			if err := n.extensions.cs.processMessage(m); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -219,4 +230,9 @@ func (n *Node) setupExtensions() {
 	} else {
 		n.extensions.cs = nil
 	}
+}
+
+// Call all node changed handlers for this node
+func (n *Node) invokeNodeChanged() {
+	n.host.invokeNodeChanged(n)
 }

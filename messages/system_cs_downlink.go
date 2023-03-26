@@ -47,7 +47,7 @@ func (m CsSetState) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
 }
 
 func (m CsSetState) String() string {
-	return fmt.Sprintf("%T addr=%s state=0x%02x", m, m.Address, m.State)
+	return fmt.Sprintf("%T addr=%s state=%s", m, m.Address, m.State)
 }
 
 func decodeCsSetState(addr bidib.Address, data []byte) (CsSetState, error) {

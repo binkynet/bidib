@@ -44,6 +44,7 @@ func (i nodeMenuItem) Description() string { return "" }
 func (i nodeMenuItem) FilterValue() string { return i.Title() }
 
 type (
+	nodeMenuItemReset        struct{ nodeMenuItem }
 	nodeMenuItemShowFeatures struct{ nodeMenuItem }
 	nodeMenuItemCsOff        struct{ nodeMenuItem }
 	nodeMenuItemCsGo         struct{ nodeMenuItem }
@@ -61,6 +62,9 @@ func (m *NodeMenu) reloadListItems() {
 				nodeMenuItemCsGo{"DCC Generator Go"},
 				nodeMenuItemCsStop{"DCC Generator Stop"},
 			)
+		}
+		if !m.node.Address.HasParent() {
+			items = append(items, nodeMenuItemReset{"Reset"})
 		}
 	}
 	m.list.SetItems(items)
