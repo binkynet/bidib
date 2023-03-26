@@ -2,7 +2,6 @@ package bidib
 
 import (
 	"fmt"
-	"strconv"
 )
 
 // Abstract interface for Bidib messages
@@ -10,35 +9,6 @@ type Message interface {
 	// Encode this message
 	Encode(write func(uint8), seqNum SequenceNumber)
 	String() string
-}
-
-// Type of message
-type MessageType uint8
-
-// String returns a human readable representation of a MessageType.
-func (mt MessageType) String() string {
-	return fmt.Sprintf("0x%02x", uint8(mt))
-}
-
-// Message sequence number
-type SequenceNumber uint8
-
-// String returns a human readable representation of a MessageType.
-func (sn SequenceNumber) String() string {
-	return strconv.Itoa(int(sn))
-}
-
-// Next returns the next sequence number.
-func (sn SequenceNumber) Next() SequenceNumber {
-	if sn == 255 {
-		return 1
-	}
-	return sn + 1
-}
-
-// Reset the sequence number to 0.
-func (sn *SequenceNumber) Reset() {
-	*sn = 0
 }
 
 // MessageProcessor takes decoded raw message information and processes it.

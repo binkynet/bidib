@@ -9,7 +9,6 @@ import (
 func (h *host) processMessage(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNumber, data []byte) {
 	log := h.log.With().
 		Str("type", mType.String()).
-		Str("addr", addr.String()).
 		Str("num", seqNum.String()).
 		Logger()
 	pm, err := messages.Parse(mType, addr, seqNum, data)
@@ -39,24 +38,16 @@ func (h *host) processMessage(mType bidib.MessageType, addr bidib.Address, seqNu
 		Msg("processed message for node")
 
 	// Post process specific messages
-	switch msg := pm.(type) {
+	switch pm.(type) {
 	case messages.NodeTabCount:
 		// If we get a new node table count, disable the interface.
-		if msg.TableLength > 0 {
-			h.intfNode.sendMessages(messages.SysDisable{})
-		} else if h.intfNode.hasCompleteNodeTableRecursive() {
-			// If we have the complete (recursive) node tables,
-			// we will enable the interface.
-			h.log.Info().Msg("Enabling Bidib")
-			h.intfNode.sendMessages(messages.SysEnable{})
-			h.invokeNodeChanged(h.intfNode)
-		}
+		h.disableSpontaneousMessages()
 	case messages.NodeTab:
 		// If we have the complete (recursive) node tables,
 		// we will enable the interface.
 		if h.intfNode.hasCompleteNodeTableRecursive() {
 			h.log.Info().Msg("Enabling Bidib")
-			h.intfNode.sendMessages(messages.SysEnable{})
+			h.enableSpontaneousMessages()
 			h.invokeNodeChanged(h.intfNode)
 		}
 	}

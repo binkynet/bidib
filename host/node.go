@@ -27,7 +27,7 @@ type Node struct {
 	// logger
 	log zerolog.Logger
 	// Last used sequence number
-	lastSeqNum bidib.SequenceNumber
+	nextSeqNum bidib.SequenceNumber
 	// Table of child nodes
 	table struct {
 		// Version of the table
@@ -92,9 +92,12 @@ func (n *Node) processMessage(m bidib.Message) error {
 		// Reset node table
 		n.table.count = m.TableLength
 		n.table.children = nil
-		n.table.ready = m.TableLength == 0
-		// Fetch next node table entry
-		if !n.table.ready {
+		n.table.ready = false
+		if m.TableLength == 0 {
+			// Table does not yet exist, try again
+			n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
+		} else if !n.table.ready {
+			// Fetch next node table entry
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
 		}
 		n.host.invokeNodeChanged(n)
@@ -119,6 +122,14 @@ func (n *Node) processMessage(m bidib.Message) error {
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
 		}
 		n.host.invokeNodeChanged(n)
+	case messages.NodeNew:
+		// Reset node table
+		n.table.count = 0
+		n.table.children = nil
+		n.table.ready = false
+		// Refetch node table
+		n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
+		n.host.invokeNodeChanged(n)
 	case messages.FeatureCount:
 		n.features.mutex.Lock()
 		n.features.all = nil
@@ -138,9 +149,9 @@ func (n *Node) processMessage(m bidib.Message) error {
 
 // sendMessages sends the given messages to the node, updating the sequence number.
 func (n *Node) sendMessages(m ...bidib.Message) error {
-	seqNum := n.lastSeqNum.Next()
+	seqNum := n.nextSeqNum
 	for i := 0; i < len(m); i++ {
-		n.lastSeqNum = n.lastSeqNum.Next()
+		n.nextSeqNum = n.nextSeqNum.Next()
 	}
 	return n.conn.SendMessages(m, seqNum)
 }

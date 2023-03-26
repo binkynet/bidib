@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/rs/zerolog"
 
@@ -49,8 +50,15 @@ type host struct {
 	log              zerolog.Logger
 	conn             transport.Connection
 	intfNode         *Node
+	disabledState    int32
 	nodeChangedEvent Event[*Node]
 }
+
+const (
+	disabledStateUnknown  = 0
+	disabledStateDisabled = 1
+	disabledStateEnabled  = 2
+)
 
 // Open the transport connection and start the process
 func (h *host) start() error {
@@ -135,4 +143,24 @@ func (h *host) RegisterNodeChanged(handler func(*Node)) context.CancelFunc {
 func (h *host) invokeNodeChanged(n *Node) {
 	h.log.Debug().Str("addr", n.Address.String()).Msg("invokeNodeChanged")
 	h.nodeChangedEvent.Invoke(n)
+}
+
+// Send a DISABLE message to the interface, blocking spontaneous messages.
+// Returns true if a DISABLE message was send, false is interface was already disabled.
+func (h *host) disableSpontaneousMessages() bool {
+	if atomic.SwapInt32(&h.disabledState, disabledStateDisabled) != disabledStateDisabled {
+		h.intfNode.sendMessages(messages.SysDisable{})
+		return true
+	}
+	return false
+}
+
+// Send a ENABLE message to the interface, blocking spontaneous messages.
+// Returns true if a ENABLE message was send, false is interface was already enabled.
+func (h *host) enableSpontaneousMessages() bool {
+	if atomic.SwapInt32(&h.disabledState, disabledStateEnabled) != disabledStateEnabled {
+		h.intfNode.sendMessages(messages.SysEnable{})
+		return true
+	}
+	return false
 }

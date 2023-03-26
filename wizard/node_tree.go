@@ -1,15 +1,11 @@
 package wizard
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/binkynet/bidib/host"
-)
-
-const (
-	iconArrowLeft  = "\u2190"
-	iconArrowRight = "\u2192"
 )
 
 func NewNodeTree(h host.Host) NodeTree {
@@ -21,6 +17,18 @@ func NewNodeTree(h host.Host) NodeTree {
 	}
 	m.list.Title = "Nodes"
 	m.list.SetShowStatusBar(false)
+	m.keyMap.LevelChange = key.NewBinding(
+		key.WithKeys("enter"),
+		key.WithHelp("enter", "change level"),
+	)
+	m.keyMap.ShowFeatures = key.NewBinding(
+		key.WithKeys("f"),
+		key.WithHelp("f", "show features"),
+	)
+	m.keyMap.Back = key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "go back"),
+	)
 	return m
 }
 
@@ -33,37 +41,19 @@ const (
 
 // Application model
 type NodeTree struct {
-	state        nodeTreeState
-	host         host.Host
-	node         *host.Node
-	list         list.Model
-	nodeChanges  chan nodeChangedMsg
-	featureTable FeatureTable
-}
-
-type nodeTreeItem struct {
-	icon string
-	role string
-	node *host.Node
-}
-
-func (i nodeTreeItem) Title() string {
-	prefix := i.icon
-	if len(prefix) > 0 {
-		prefix += " "
+	state         nodeTreeState
+	width, height int
+	host          host.Host
+	node          *host.Node
+	list          list.Model
+	nodeChanges   chan nodeChangedMsg
+	featureTable  FeatureTable
+	keyMap        struct {
+		LevelChange  key.Binding
+		ShowFeatures key.Binding
+		Back         key.Binding
 	}
-	if i.node.Address.GetLength() == 0 {
-		return prefix + "<interface>"
-	}
-	return prefix + i.node.Address.String()
 }
-func (i nodeTreeItem) Description() string {
-	if len(i.role) != 0 {
-		return i.role
-	}
-	return i.node.UniqueID.String()
-}
-func (i nodeTreeItem) FilterValue() string { return i.Title() }
 
 // Reload all the items into the list, based on the current node.
 func (m *NodeTree) reloadListItems() {
@@ -108,27 +98,25 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter":
-			if m.state == nodeTreeStateTree {
-				if item := m.list.SelectedItem(); item != nil {
-					selectedNode := item.(nodeTreeItem).node
-					if m.node == selectedNode {
-						m.featureTable = NewFeatureTable(selectedNode)
-						m.state = nodeTreeStateFeatures
-						return m, m.featureTable.Init()
-					} else {
-						m.node = item.(nodeTreeItem).node
-						m.reloadListItems()
-					}
-					return m, nil
+		switch {
+		case key.Matches(msg, m.keyMap.LevelChange) && m.state == nodeTreeStateTree:
+			if selectedNode := m.getSelectedNode(); selectedNode != nil {
+				if m.node != selectedNode {
+					m.node = selectedNode
+					m.reloadListItems()
 				}
-			}
-		case "esc":
-			if m.state == nodeTreeStateFeatures {
-				m.state = nodeTreeStateTree
 				return m, nil
 			}
+		case key.Matches(msg, m.keyMap.ShowFeatures) && m.state == nodeTreeStateTree:
+			if selectedNode := m.getSelectedNode(); selectedNode != nil {
+				m.featureTable = NewFeatureTable(selectedNode)
+				m.state = nodeTreeStateFeatures
+				m.applyLayout()
+				return m, m.featureTable.Init()
+			}
+		case key.Matches(msg, m.keyMap.Back) && m.state == nodeTreeStateFeatures:
+			m.state = nodeTreeStateTree
+			return m, nil
 		default:
 			switch m.state {
 			case nodeTreeStateTree:
@@ -175,6 +163,19 @@ func (m NodeTree) View() string {
 }
 
 func (m *NodeTree) SetSize(w, h int) {
-	m.list.SetSize(w, h)
-	m.featureTable.SetSize(w, h)
+	m.width, m.height = w, h
+	m.applyLayout()
+}
+
+func (m *NodeTree) applyLayout() {
+	m.list.SetSize(m.width, m.height)
+	m.featureTable.SetSize(m.width, m.height-1) // -1 is to fix bug in table height
+}
+
+// Returns the currently selected node (if any)
+func (m *NodeTree) getSelectedNode() *host.Node {
+	if item := m.list.SelectedItem(); item != nil {
+		return item.(nodeTreeItem).node
+	}
+	return nil
 }

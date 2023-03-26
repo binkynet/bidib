@@ -26,6 +26,7 @@ func New() PortSelector {
 		list: list.New(nil, list.NewDefaultDelegate(), 0, 0),
 	}
 	m.list.Title = "Select serial port"
+	m.list.SetShowStatusBar(false)
 	return m
 }
 

@@ -16,6 +16,7 @@ func NewApp() App {
 	return App{
 		state:           appStateSelectPort,
 		serialSelection: serial.New(),
+		nodeTree:        NewNodeTree(nil),
 		logView:         NewLogView(),
 	}
 }
@@ -68,6 +69,7 @@ func (m App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
+		m.applyLayout()
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -140,6 +142,7 @@ func (m *App) updateSerialSelection(msg tea.Msg) []tea.Cmd {
 
 		m.state = appStateNodeTree
 		cmds = append(cmds, m.nodeTree.Init())
+		m.applyLayout()
 	}
 	return cmds
 }
@@ -156,32 +159,40 @@ func (m *App) updateLogView(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
-func (m App) View() string {
-	w := m.width - 2
-	h1 := (m.height / 2) - 2
-	h2 := (m.height - h1) - 4
+// Set the layout of all models
+func (m *App) applyLayout() {
+	contentWidth := m.width - modelStyle.GetHorizontalFrameSize()
+	vfs := modelStyle.GetVerticalFrameSize()
+	contentHeight1 := (m.height / 2) - vfs
+	contentHeight2 := (m.height - contentHeight1) - (vfs * 2)
 
-	sized := func(s lipgloss.Style, w, h int) lipgloss.Style {
-		return s.Width(w).Height(h)
+	m.serialSelection.SetSize(contentWidth, contentHeight1)
+	m.nodeTree.SetSize(contentWidth, contentHeight1)
+	m.logView.SetSize(contentWidth, contentHeight2)
+}
+
+func (m App) View() string {
+	contentWidth := m.width - modelStyle.GetHorizontalFrameSize()
+	vfs := modelStyle.GetVerticalFrameSize()
+	contentHeight1 := (m.height / 2) - vfs
+	contentHeight2 := (m.height - contentHeight1) - (vfs * 2)
+
+	sized := func(s lipgloss.Style, h int) lipgloss.Style {
+		return s.Width(contentWidth).Height(h)
 	}
 
 	switch m.state {
 	case appStateSelectPort:
-		m.serialSelection.SetSize(w, h1)
-		return sized(focusedModelStyle, w, h1).Render(m.serialSelection.View())
+		return sized(focusedModelStyle, contentHeight1).Render(m.serialSelection.View())
 	case appStateNodeTree:
-		m.nodeTree.SetSize(w, h1)
-		m.logView.SetSize(w, h2)
 		return lipgloss.JoinVertical(lipgloss.Left,
-			sized(focusedModelStyle, w, h1).Render(m.nodeTree.View()),
-			sized(modelStyle, w, h2).Render(m.logView.View()),
+			sized(focusedModelStyle, contentHeight1).Render(m.nodeTree.View()),
+			sized(modelStyle, contentHeight2).Render(m.logView.View()),
 		)
 	case appStateLogView:
-		m.nodeTree.SetSize(w, h1)
-		m.logView.SetSize(w, h2)
 		return lipgloss.JoinVertical(lipgloss.Left,
-			sized(modelStyle, w, h1).Render(m.nodeTree.View()),
-			sized(focusedModelStyle, w, h2).Render(m.logView.View()),
+			sized(modelStyle, contentHeight1).Render(m.nodeTree.View()),
+			sized(focusedModelStyle, contentHeight2).Render(m.logView.View()),
 		)
 	default:
 		return ""

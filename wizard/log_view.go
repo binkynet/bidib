@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -17,13 +18,25 @@ func NewLogView() LogView {
 	}
 	m.lb.changed = make(chan logChangedMsg, 32)
 	m.view.SetContent("initial content")
+	m.keyMap.GotoStart = key.NewBinding(
+		key.WithKeys("home", "g"),
+		key.WithHelp("g/home", "go to start"),
+	)
+	m.keyMap.GotoEnd = key.NewBinding(
+		key.WithKeys("end", "G"),
+		key.WithHelp("G/end", "go to end"),
+	)
 	return m
 }
 
 // Viewer for logs
 type LogView struct {
-	view viewport.Model
-	lb   *logBuffer
+	view   viewport.Model
+	lb     *logBuffer
+	keyMap struct {
+		GotoStart key.Binding
+		GotoEnd   key.Binding
+	}
 }
 
 type logChangedMsg struct{}
@@ -64,7 +77,16 @@ func (m LogView) onChanged() tea.Cmd {
 func (m LogView) Update(msg tea.Msg) (LogView, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	switch msg.(type) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if key.Matches(msg, m.keyMap.GotoStart) {
+			m.view.SetYOffset(0)
+			return m, nil
+		} else if key.Matches(msg, m.keyMap.GotoEnd) {
+			//panic(fmt.Sprintf("Height=%d", m.view.Height))
+			m.view.SetYOffset(m.view.TotalLineCount() - 10 /*m.view.Height*/)
+			return m, nil
+		}
 	case logChangedMsg:
 		m.view.SetContent(strings.TrimSpace(m.lb.String()))
 		return m, m.onChanged()

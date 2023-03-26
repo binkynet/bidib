@@ -266,7 +266,7 @@ func (m SysError) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
 }
 
 func (m SysError) String() string {
-	return fmt.Sprintf("%T addr=%s error=0x%02x", m, m.Address, m.Error)
+	return fmt.Sprintf("%T addr=%s error=%s", m, m.Address, m.Error)
 }
 
 func decodeSysError(addr bidib.Address, data []byte) (SysError, error) {
