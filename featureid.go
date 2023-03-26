@@ -1,6 +1,8 @@
 package bidib
 
 // Identifier for feature number
+//
+//go:generate stringer -type=FeatureID
 type FeatureID uint8
 
 const (

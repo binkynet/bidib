@@ -43,6 +43,9 @@ type Node struct {
 		mutex sync.RWMutex
 		all   map[bidib.FeatureID]uint8
 	}
+	extensions struct {
+		cs *NodeCs
+	}
 }
 
 // newNode constructs a new node.
@@ -73,9 +76,20 @@ func (n *Node) GetFeature(feature bidib.FeatureID) (uint8, bool) {
 	return result, ok
 }
 
+// Gets the commandstation extension.
+// If this node does not have a DCC signal generator, the result is nil.
+func (n *Node) Cs() *NodeCs {
+	return n.extensions.cs
+}
+
+// Return a base message to include in all specific messages send to this node.
+func (n *Node) createBaseMessage() messages.BaseMessage {
+	return messages.BaseMessage{Address: n.Address}
+}
+
 // process the message that is targeted for this node.
 func (n *Node) processMessage(m bidib.Message) error {
-	baseMsg := messages.BaseMessage{Address: n.Address}
+	baseMsg := n.createBaseMessage()
 	switch m := m.(type) {
 	case messages.SysMagic:
 		n.Magic = m.Magic
@@ -83,6 +97,8 @@ func (n *Node) processMessage(m bidib.Message) error {
 	case messages.SysUniqueID:
 		n.UniqueID = m.UniqueID
 		n.FingerPrint = m.FingerPrint
+		// Set extensions for this node
+		n.setupExtensions()
 		// If node class indicates subnodes, trigger table discovery
 		if n.UniqueID.ClassID().HasSubNodes() {
 			n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
@@ -190,4 +206,13 @@ func (n *Node) hasCompleteNodeTableRecursive() bool {
 		}
 	}
 	return true
+}
+
+// Set all extensions depending on class ID.
+func (n *Node) setupExtensions() {
+	if n.UniqueID.ClassID().HasDCCSignalGenerator() {
+		n.extensions.cs = &NodeCs{node: n}
+	} else {
+		n.extensions.cs = nil
+	}
 }

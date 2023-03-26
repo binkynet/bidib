@@ -19,9 +19,9 @@ type FeatureGetAll struct {
 }
 
 func (m FeatureGetAll) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
-	data := []byte{0}
+	var data []byte
 	if m.Streaming {
-		data[0] = 1
+		data = []byte{1}
 	}
 	bidib.EncodeMessage(write, bidib.MSG_FEATURE_GETALL, m.Address, seqNum, data)
 }

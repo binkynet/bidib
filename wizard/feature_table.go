@@ -15,7 +15,7 @@ func NewFeatureTable(n *host.Node) FeatureTable {
 		node: n,
 		table: table.New(
 			table.WithColumns([]table.Column{
-				{"Feature", 10},
+				{"Feature", 40},
 				{"Value", 10},
 			}),
 			table.WithFocused(true),
@@ -36,7 +36,7 @@ func (m *FeatureTable) reloadTableRows() {
 	var items []table.Row
 	for id := bidib.FeatureID(0); id < 255; id++ {
 		if value, found := m.node.GetFeature(id); found {
-			items = append(items, table.Row{strconv.Itoa(int(id)), strconv.Itoa(int(value))})
+			items = append(items, table.Row{id.String(), strconv.Itoa(int(value))})
 		}
 	}
 	m.table.SetRows(items)
