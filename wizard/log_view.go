@@ -83,12 +83,15 @@ func (m LogView) Update(msg tea.Msg) (LogView, tea.Cmd) {
 			m.view.SetYOffset(0)
 			return m, nil
 		} else if key.Matches(msg, m.keyMap.GotoEnd) {
-			//panic(fmt.Sprintf("Height=%d", m.view.Height))
-			m.view.SetYOffset(m.view.TotalLineCount() - 10 /*m.view.Height*/)
+			m.view.SetYOffset(m.view.TotalLineCount() - m.view.Height)
 			return m, nil
 		}
 	case logChangedMsg:
+		atBottom := m.view.AtBottom()
 		m.view.SetContent(strings.TrimSpace(m.lb.String()))
+		if atBottom {
+			m.view.SetYOffset(m.view.TotalLineCount() - m.view.Height)
+		}
 		return m, m.onChanged()
 	}
 
