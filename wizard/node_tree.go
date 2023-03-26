@@ -13,6 +13,7 @@ func NewNodeTree(h host.Host) NodeTree {
 		state:       nodeTreeStateTree,
 		host:        h,
 		list:        list.New(nil, list.NewDefaultDelegate(), 0, 0),
+		menu:        NewNodeMenu(nil),
 		nodeChanges: make(chan nodeChangedMsg, 64),
 	}
 	m.list.Title = "Nodes"
@@ -20,6 +21,10 @@ func NewNodeTree(h host.Host) NodeTree {
 	m.keyMap.LevelChange = key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "change level"),
+	)
+	m.keyMap.ShowMenu = key.NewBinding(
+		key.WithKeys("m"),
+		key.WithHelp("m", "show menu"),
 	)
 	m.keyMap.ShowFeatures = key.NewBinding(
 		key.WithKeys("f"),
@@ -37,6 +42,7 @@ type nodeTreeState uint8
 const (
 	nodeTreeStateTree nodeTreeState = iota
 	nodeTreeStateFeatures
+	nodeTreeStateMenu
 )
 
 // Application model
@@ -48,8 +54,10 @@ type NodeTree struct {
 	list          list.Model
 	nodeChanges   chan nodeChangedMsg
 	featureTable  FeatureTable
+	menu          NodeMenu
 	keyMap        struct {
 		LevelChange  key.Binding
+		ShowMenu     key.Binding
 		ShowFeatures key.Binding
 		Back         key.Binding
 	}
@@ -108,13 +116,18 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 				return m, nil
 			}
 		case key.Matches(msg, m.keyMap.ShowFeatures) && m.state == nodeTreeStateTree:
+			return m.showFeatures()
+		case key.Matches(msg, m.keyMap.ShowMenu) && m.state == nodeTreeStateTree:
 			if selectedNode := m.getSelectedNode(); selectedNode != nil {
-				m.featureTable = NewFeatureTable(selectedNode)
-				m.state = nodeTreeStateFeatures
+				m.menu = NewNodeMenu(selectedNode)
+				m.state = nodeTreeStateMenu
 				m.applyLayout()
-				return m, m.featureTable.Init()
+				return m, m.menu.Init()
 			}
 		case key.Matches(msg, m.keyMap.Back) && m.state == nodeTreeStateFeatures:
+			m.state = nodeTreeStateTree
+			return m, nil
+		case key.Matches(msg, m.keyMap.Back) && m.state == nodeTreeStateMenu:
 			m.state = nodeTreeStateTree
 			return m, nil
 		default:
@@ -123,9 +136,25 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 				cmds = append(cmds, m.updateList(msg))
 			case nodeTreeStateFeatures:
 				cmds = append(cmds, m.updateFeatureTable(msg))
+			case nodeTreeStateMenu:
+				cmds = append(cmds, m.updateMenu(msg))
 			}
 		}
 		return m, tea.Batch(cmds...)
+	case nodeMenuItemShowFeatures:
+		return m.showFeatures()
+	case nodeMenuItemCsOff:
+		m.getSelectedNode().Cs().Off()
+		m.state = nodeTreeStateTree
+		return m, nil
+	case nodeMenuItemCsGo:
+		m.getSelectedNode().Cs().Go()
+		m.state = nodeTreeStateTree
+		return m, nil
+	case nodeMenuItemCsStop:
+		m.getSelectedNode().Cs().Stop()
+		m.state = nodeTreeStateTree
+		return m, nil
 	case selectCurrentNodeMsg:
 		m.node = msg
 		m.reloadListItems()
@@ -134,7 +163,8 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		cmds = append(cmds, m.onNodeChanged())
 	default:
 		cmds = append(cmds, m.updateList(msg))
-		cmds = append(cmds, m.updateList(msg))
+		cmds = append(cmds, m.updateFeatureTable(msg))
+		cmds = append(cmds, m.updateMenu(msg))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -152,12 +182,30 @@ func (m *NodeTree) updateFeatureTable(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
+func (m *NodeTree) updateMenu(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	m.menu, cmd = m.menu.Update(msg)
+	return cmd
+}
+
+func (m NodeTree) showFeatures() (NodeTree, tea.Cmd) {
+	if selectedNode := m.getSelectedNode(); selectedNode != nil {
+		m.featureTable = NewFeatureTable(selectedNode)
+		m.state = nodeTreeStateFeatures
+		m.applyLayout()
+		return m, m.featureTable.Init()
+	}
+	return m, nil
+}
+
 func (m NodeTree) View() string {
 	switch m.state {
 	case nodeTreeStateTree:
 		return m.list.View()
 	case nodeTreeStateFeatures:
 		return m.featureTable.View()
+	case nodeTreeStateMenu:
+		return m.menu.View()
 	}
 	return ""
 }
@@ -169,7 +217,8 @@ func (m *NodeTree) SetSize(w, h int) {
 
 func (m *NodeTree) applyLayout() {
 	m.list.SetSize(m.width, m.height)
-	m.featureTable.SetSize(m.width, m.height-1) // -1 is to fix bug in table height
+	m.featureTable.SetSize(m.width, m.height)
+	m.menu.SetSize(m.width, m.height)
 }
 
 // Returns the currently selected node (if any)

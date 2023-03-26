@@ -63,5 +63,5 @@ func (m FeatureTable) View() string {
 // Set the widget size
 func (m *FeatureTable) SetSize(w, h int) {
 	m.table.SetWidth(w)
-	m.table.SetHeight(h)
+	m.table.SetHeight(h - 1) // Fixing bug in table height
 }
