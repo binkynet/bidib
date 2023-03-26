@@ -49,6 +49,9 @@ type (
 	nodeMenuItemCsOff        struct{ nodeMenuItem }
 	nodeMenuItemCsGo         struct{ nodeMenuItem }
 	nodeMenuItemCsStop       struct{ nodeMenuItem }
+
+	nodeMenuItemCsLightsOn3  struct{ nodeMenuItem }
+	nodeMenuItemCsLightsOff3 struct{ nodeMenuItem }
 )
 
 // Reload all the items into the list, based on the current node.
@@ -61,6 +64,8 @@ func (m *NodeMenu) reloadListItems() {
 				nodeMenuItemCsOff{"DCC Generator Off"},
 				nodeMenuItemCsGo{"DCC Generator Go"},
 				nodeMenuItemCsStop{"DCC Generator Stop"},
+				nodeMenuItemCsLightsOn3{"Light on @for address 3"},
+				nodeMenuItemCsLightsOff3{"Light off @for address 3"},
 			)
 		}
 		if !m.node.Address.HasParent() {

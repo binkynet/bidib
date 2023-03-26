@@ -8,6 +8,13 @@ import "fmt"
 // ...
 type DccFlags []bool
 
+// Clone creates an identical copy
+func (f DccFlags) Clone() DccFlags {
+	result := make(DccFlags, len(f))
+	copy(result, f)
+	return result
+}
+
 // Gets the flag at given index
 func (f DccFlags) Get(index int) bool {
 	if index >= 0 && index < len(f) {

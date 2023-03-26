@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/binkynet/bidib"
 	"github.com/binkynet/bidib/host"
 )
 
@@ -161,6 +162,29 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		return m, nil
 	case nodeMenuItemCsStop:
 		m.getSelectedNode().Cs().Stop()
+		m.state = nodeTreeStateTree
+		return m, nil
+	case nodeMenuItemCsLightsOn3:
+		f := bidib.DccFlags{true}
+		m.getSelectedNode().Cs().Drive(host.DriveOptions{
+			DccAddress:  3,
+			DccFormat:   bidib.BIDIB_CS_DRIVE_FORMAT_DCC14,
+			OutputF1_F4: true,
+			OutputSpeed: true,
+			Flags:       f,
+			Speed:       5,
+		})
+		m.state = nodeTreeStateTree
+		return m, nil
+	case nodeMenuItemCsLightsOff3:
+		f := bidib.DccFlags{false}
+		m.getSelectedNode().Cs().Drive(host.DriveOptions{
+			DccAddress:  3,
+			DccFormat:   bidib.BIDIB_CS_DRIVE_FORMAT_DCC14,
+			OutputF1_F4: true,
+			OutputSpeed: true,
+			Flags:       f,
+		})
 		m.state = nodeTreeStateTree
 		return m, nil
 	case selectCurrentNodeMsg:
