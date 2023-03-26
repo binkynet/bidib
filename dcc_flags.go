@@ -1,6 +1,8 @@
 package bidib
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // DCC Flags
 // Index 0 = FL (lights)
@@ -58,4 +60,16 @@ func (f DccFlags) SetBits(startIndex, endIndex int, value uint8) {
 		}
 		bit <<= 1
 	}
+}
+
+func (f DccFlags) String() string {
+	result := make([]byte, len(f))
+	for idx, x := range f {
+		if x {
+			result[idx] = '1'
+		} else {
+			result[idx] = '0'
+		}
+	}
+	return string(result)
 }

@@ -17,6 +17,7 @@ func NewNodeTree(h host.Host) NodeTree {
 		list:        list.New(nil, list.NewDefaultDelegate(), 0, 0),
 		menu:        NewNodeMenu(nil),
 		info:        NewNodeInfo(nil),
+		driversCab:  NewDriversCab(nil),
 		nodeChanges: make(chan nodeChangedMsg, 64),
 	}
 	m.list.Title = "Nodes"
@@ -46,6 +47,7 @@ const (
 	nodeTreeStateTree nodeTreeState = iota
 	nodeTreeStateFeatures
 	nodeTreeStateMenu
+	nodeTreeStateDriversCab
 )
 
 // Application model
@@ -59,6 +61,7 @@ type NodeTree struct {
 	featureTable  FeatureTable
 	menu          NodeMenu
 	info          NodeInfo
+	driversCab    *DriversCab
 	keyMap        struct {
 		LevelChange  key.Binding
 		ShowMenu     key.Binding
@@ -83,6 +86,7 @@ func (m *NodeTree) reloadListItems() {
 	}
 	m.list.SetItems(items)
 	m.info.SetNode(m.getSelectedNode())
+	m.driversCab.SetNode(m.getSelectedNode())
 }
 
 type selectCurrentNodeMsg *host.Node
@@ -129,10 +133,7 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 				m.applyLayout()
 				return m, m.menu.Init()
 			}
-		case key.Matches(msg, m.keyMap.Back) && m.state == nodeTreeStateFeatures:
-			m.state = nodeTreeStateTree
-			return m, nil
-		case key.Matches(msg, m.keyMap.Back) && m.state == nodeTreeStateMenu:
+		case key.Matches(msg, m.keyMap.Back) && m.state != nodeTreeStateTree:
 			m.state = nodeTreeStateTree
 			return m, nil
 		default:
@@ -143,6 +144,8 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 				cmds = append(cmds, m.updateFeatureTable(msg))
 			case nodeTreeStateMenu:
 				cmds = append(cmds, m.updateMenu(msg))
+			case nodeTreeStateDriversCab:
+				cmds = append(cmds, m.updateDriversCab(msg))
 			}
 		}
 		return m, tea.Batch(cmds...)
@@ -152,6 +155,8 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		return m, nil
 	case nodeMenuItemShowFeatures:
 		return m.showFeatures()
+	case nodeMenuItemShowDriversCab:
+		return m.showDriversCab()
 	case nodeMenuItemCsOff:
 		m.getSelectedNode().Cs().Off()
 		m.state = nodeTreeStateTree
@@ -199,6 +204,7 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		cmds = append(cmds, m.updateFeatureTable(msg))
 		cmds = append(cmds, m.updateMenu(msg))
 		cmds = append(cmds, m.updateInfo(msg))
+		cmds = append(cmds, m.updateDriversCab(msg))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -229,12 +235,26 @@ func (m *NodeTree) updateInfo(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
+func (m *NodeTree) updateDriversCab(msg tea.Msg) tea.Cmd {
+	return m.driversCab.Update(msg)
+}
+
 func (m NodeTree) showFeatures() (NodeTree, tea.Cmd) {
 	if selectedNode := m.getSelectedNode(); selectedNode != nil {
 		m.featureTable = NewFeatureTable(selectedNode)
 		m.state = nodeTreeStateFeatures
 		m.applyLayout()
 		return m, m.featureTable.Init()
+	}
+	return m, nil
+}
+
+func (m NodeTree) showDriversCab() (NodeTree, tea.Cmd) {
+	if selectedNode := m.getSelectedNode(); selectedNode != nil {
+		m.driversCab.SetNode(selectedNode)
+		m.state = nodeTreeStateDriversCab
+		m.applyLayout()
+		return m, m.driversCab.Init()
 	}
 	return m, nil
 }
@@ -251,6 +271,8 @@ func (m NodeTree) View() string {
 		return m.featureTable.View()
 	case nodeTreeStateMenu:
 		return m.menu.View()
+	case nodeTreeStateDriversCab:
+		return m.driversCab.View()
 	}
 	return ""
 }
@@ -266,6 +288,7 @@ func (m *NodeTree) applyLayout() {
 	m.info.SetSize(m.width-listWidth, m.height)
 	m.featureTable.SetSize(m.width, m.height)
 	m.menu.SetSize(m.width, m.height)
+	m.driversCab.SetSize(m.width, m.height)
 }
 
 // Returns the currently selected node (if any)
