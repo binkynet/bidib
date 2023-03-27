@@ -21,6 +21,15 @@ func NewDriversCab(n *host.Node) *DriversCab {
 	m.driveOpts.OutputF1_F4 = true
 	m.driveOpts.OutputF5_F8 = true
 	m.driveOpts.Flags = make(bidib.DccFlags, 9)
+
+	addrBox := NewNumberInput("Address", int(m.driveOpts.DccAddress), 10239)
+	addrBox.MinValue = 1
+	addrBox.OnChanged = func(v int) {
+		m.driveOpts.DccAddress = uint16(v)
+		m.drive()
+	}
+	m.inputs = append(m.inputs, addrBox)
+
 	for i := 0; i < len(m.driveOpts.Flags); i++ {
 		var title string
 		if i == 0 {
@@ -44,12 +53,13 @@ func NewDriversCab(n *host.Node) *DriversCab {
 	}
 	m.inputs = append(m.inputs, cbDir)
 
-	speedBox := NewSpeedBox("Speed", 0, 128)
-	speedBox.OnChanged = func(v uint8) {
-		m.driveOpts.Speed = v
+	speedBox := NewNumberInput("Speed", 0, 127)
+	speedBox.OnChanged = func(v int) {
+		m.driveOpts.Speed = uint8(v)
 		m.drive()
 	}
 	m.inputs = append(m.inputs, speedBox)
+
 	m.updateFocus()
 
 	return m
