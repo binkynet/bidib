@@ -226,3 +226,37 @@ func decodeCsDriveEvent(addr bidib.Address, data []byte) (CsDriveEvent, error) {
 	result.Event = bidib.CsEvent(data[2])
 	return result, nil
 }
+
+// This command reports results from an programming operation in service mode. Followed by further parameters:
+type CsProgState struct {
+	BaseMessage
+	State uint8
+	Time  uint8
+	Cv    uint16
+	Data  uint8
+}
+
+func (m CsProgState) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
+	data := []byte{m.State, m.Time, 0, 0, m.Data}
+	writeUint16(data[2:], m.Cv)
+	bidib.EncodeMessage(write, bidib.MSG_CS_PROG_STATE, m.Address, seqNum, data)
+}
+
+func (m CsProgState) String() string {
+	return fmt.Sprintf("%T addr=%s state=0x%02x time=%d cv=%d data=%d", m, m.Address, m.State, m.Time, m.Cv, m.Data)
+}
+
+func decodeCsProgState(addr bidib.Address, data []byte) (CsProgState, error) {
+	var result CsProgState
+	if err := validateMinDataLength(data, 4); err != nil {
+		return result, err
+	}
+	result.Address = addr
+	result.State = data[0]
+	result.Time = data[1]
+	result.Cv = readUint16(data[2:])
+	if len(data) > 4 {
+		result.Data = data[4]
+	}
+	return result, nil
+}

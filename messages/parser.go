@@ -160,6 +160,16 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 		return decodeCsDriveManual(addr, data)
 	case bidib.MSG_CS_DRIVE_EVENT:
 		return decodeCsDriveEvent(addr, data)
+	case bidib.MSG_CS_PROG_STATE:
+		return decodeCsProgState(addr, data)
+
+	// Occupancy uplink
+	case bidib.MSG_BM_CV:
+		return decodeBmCv(addr, data)
+	case bidib.MSG_BM_SPEED:
+		return decodeBmSpeed(addr, data)
+	case bidib.MSG_BM_DYN_STATE:
+		return decodeBmDynState(addr, data)
 
 	default:
 		return nil, fmt.Errorf("failed to parse message of type %s", mType)

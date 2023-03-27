@@ -81,6 +81,39 @@ func (ncs *NodeCs) Drive(opts DriveOptions) {
 	})
 }
 
+// Program performs a programming operation
+// cv: 1..1024
+func (ncs *NodeCs) Program(opcode bidib.CsProgOpCode, cv uint16, data uint8) {
+	ncs.host.postOnQueue(func() {
+		ncs.desiredCsState = bidib.BIDIB_CS_STATE_PROG
+		baseMsg := ncs.createBaseMessage()
+		ncs.sendMessages(messages.CsSetState{
+			BaseMessage: baseMsg,
+			State:       bidib.BIDIB_CS_STATE_PROG,
+		}, messages.CsProg{
+			BaseMessage: baseMsg,
+			OpCode:      opcode,
+			Cv:          cv - 1,
+			Data:        data,
+		})
+	})
+}
+
+// ProgramOnMain performs a programming operation on main track
+// cv: 1..1024
+func (ncs *NodeCs) ProgramOnMain(opcode bidib.CsPomOpCode, dccAddress uint32, cv uint32, data uint8) {
+	ncs.host.postOnQueue(func() {
+		baseMsg := ncs.createBaseMessage()
+		ncs.sendMessages(messages.CsPom{
+			BaseMessage: baseMsg,
+			DccAddress:  dccAddress,
+			OpCode:      opcode,
+			Cv:          cv - 1,
+			Data:        [4]byte{data, 0, 0, 0},
+		})
+	})
+}
+
 // setState request a CS state change
 func (ncs *NodeCs) setState(state bidib.CsState) {
 	ncs.host.postOnQueue(func() {

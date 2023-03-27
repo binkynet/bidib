@@ -44,15 +44,13 @@ func (i nodeMenuItem) Description() string { return "" }
 func (i nodeMenuItem) FilterValue() string { return i.Title() }
 
 type (
-	nodeMenuItemReset          struct{ nodeMenuItem }
-	nodeMenuItemShowFeatures   struct{ nodeMenuItem }
-	nodeMenuItemShowDriversCab struct{ nodeMenuItem }
-	nodeMenuItemCsOff          struct{ nodeMenuItem }
-	nodeMenuItemCsGo           struct{ nodeMenuItem }
-	nodeMenuItemCsStop         struct{ nodeMenuItem }
-
-	nodeMenuItemCsLightsOn3  struct{ nodeMenuItem }
-	nodeMenuItemCsLightsOff3 struct{ nodeMenuItem }
+	nodeMenuItemReset            struct{ nodeMenuItem }
+	nodeMenuItemShowFeatures     struct{ nodeMenuItem }
+	nodeMenuItemShowDriversCab   struct{ nodeMenuItem }
+	nodeMenuItemShowCVProgrammer struct{ nodeMenuItem }
+	nodeMenuItemCsOff            struct{ nodeMenuItem }
+	nodeMenuItemCsGo             struct{ nodeMenuItem }
+	nodeMenuItemCsStop           struct{ nodeMenuItem }
 )
 
 // Reload all the items into the list, based on the current node.
@@ -66,8 +64,7 @@ func (m *NodeMenu) reloadListItems() {
 				nodeMenuItemCsGo{"DCC Generator Go"},
 				nodeMenuItemCsStop{"DCC Generator Stop"},
 				nodeMenuItemShowDriversCab{"Drivers cab"},
-				nodeMenuItemCsLightsOn3{"Light on @for address 3"},
-				nodeMenuItemCsLightsOff3{"Light off @for address 3"},
+				nodeMenuItemShowCVProgrammer{"CV Programmer"},
 			)
 		}
 		if !m.node.Address.HasParent() {

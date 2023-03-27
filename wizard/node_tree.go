@@ -6,19 +6,19 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/binkynet/bidib"
 	"github.com/binkynet/bidib/host"
 )
 
 func NewNodeTree(h host.Host) NodeTree {
 	m := NodeTree{
-		state:       nodeTreeStateTree,
-		host:        h,
-		list:        list.New(nil, list.NewDefaultDelegate(), 0, 0),
-		menu:        NewNodeMenu(nil),
-		info:        NewNodeInfo(nil),
-		driversCab:  NewDriversCab(nil),
-		nodeChanges: make(chan nodeChangedMsg, 64),
+		state:        nodeTreeStateTree,
+		host:         h,
+		list:         list.New(nil, list.NewDefaultDelegate(), 0, 0),
+		menu:         NewNodeMenu(nil),
+		info:         NewNodeInfo(nil),
+		driversCab:   NewDriversCab(nil),
+		cvProgrammer: NewCVProgrammer(nil),
+		nodeChanges:  make(chan nodeChangedMsg, 64),
 	}
 	m.list.Title = "Nodes"
 	m.list.SetShowStatusBar(false)
@@ -48,6 +48,7 @@ const (
 	nodeTreeStateFeatures
 	nodeTreeStateMenu
 	nodeTreeStateDriversCab
+	nodeTreeStateCVProgrammer
 )
 
 // Application model
@@ -62,6 +63,7 @@ type NodeTree struct {
 	menu          NodeMenu
 	info          NodeInfo
 	driversCab    *DriversCab
+	cvProgrammer  *CVProgrammer
 	keyMap        struct {
 		LevelChange  key.Binding
 		ShowMenu     key.Binding
@@ -87,6 +89,7 @@ func (m *NodeTree) reloadListItems() {
 	m.list.SetItems(items)
 	m.info.SetNode(m.getSelectedNode())
 	m.driversCab.SetNode(m.getSelectedNode())
+	m.cvProgrammer.SetNode(m.getSelectedNode())
 }
 
 type selectCurrentNodeMsg *host.Node
@@ -146,6 +149,8 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 				cmds = append(cmds, m.updateMenu(msg))
 			case nodeTreeStateDriversCab:
 				cmds = append(cmds, m.updateDriversCab(msg))
+			case nodeTreeStateCVProgrammer:
+				cmds = append(cmds, m.updateCVProgrammer(msg))
 			}
 		}
 		return m, tea.Batch(cmds...)
@@ -157,6 +162,8 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		return m.showFeatures()
 	case nodeMenuItemShowDriversCab:
 		return m.showDriversCab()
+	case nodeMenuItemShowCVProgrammer:
+		return m.showCVProgrammer()
 	case nodeMenuItemCsOff:
 		m.getSelectedNode().Cs().Off()
 		m.state = nodeTreeStateTree
@@ -167,29 +174,6 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		return m, nil
 	case nodeMenuItemCsStop:
 		m.getSelectedNode().Cs().Stop()
-		m.state = nodeTreeStateTree
-		return m, nil
-	case nodeMenuItemCsLightsOn3:
-		f := bidib.DccFlags{true}
-		m.getSelectedNode().Cs().Drive(host.DriveOptions{
-			DccAddress:  3,
-			DccFormat:   bidib.BIDIB_CS_DRIVE_FORMAT_DCC14,
-			OutputF1_F4: true,
-			OutputSpeed: true,
-			Flags:       f,
-			Speed:       5,
-		})
-		m.state = nodeTreeStateTree
-		return m, nil
-	case nodeMenuItemCsLightsOff3:
-		f := bidib.DccFlags{false}
-		m.getSelectedNode().Cs().Drive(host.DriveOptions{
-			DccAddress:  3,
-			DccFormat:   bidib.BIDIB_CS_DRIVE_FORMAT_DCC14,
-			OutputF1_F4: true,
-			OutputSpeed: true,
-			Flags:       f,
-		})
 		m.state = nodeTreeStateTree
 		return m, nil
 	case selectCurrentNodeMsg:
@@ -205,6 +189,7 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 		cmds = append(cmds, m.updateMenu(msg))
 		cmds = append(cmds, m.updateInfo(msg))
 		cmds = append(cmds, m.updateDriversCab(msg))
+		cmds = append(cmds, m.updateCVProgrammer(msg))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -239,6 +224,10 @@ func (m *NodeTree) updateDriversCab(msg tea.Msg) tea.Cmd {
 	return m.driversCab.Update(msg)
 }
 
+func (m *NodeTree) updateCVProgrammer(msg tea.Msg) tea.Cmd {
+	return m.cvProgrammer.Update(msg)
+}
+
 func (m NodeTree) showFeatures() (NodeTree, tea.Cmd) {
 	if selectedNode := m.getSelectedNode(); selectedNode != nil {
 		m.featureTable = NewFeatureTable(selectedNode)
@@ -259,6 +248,16 @@ func (m NodeTree) showDriversCab() (NodeTree, tea.Cmd) {
 	return m, nil
 }
 
+func (m NodeTree) showCVProgrammer() (NodeTree, tea.Cmd) {
+	if selectedNode := m.getSelectedNode(); selectedNode != nil {
+		m.cvProgrammer.SetNode(selectedNode)
+		m.state = nodeTreeStateCVProgrammer
+		m.applyLayout()
+		return m, m.cvProgrammer.Init()
+	}
+	return m, nil
+}
+
 func (m NodeTree) View() string {
 	switch m.state {
 	case nodeTreeStateTree:
@@ -273,6 +272,8 @@ func (m NodeTree) View() string {
 		return m.menu.View()
 	case nodeTreeStateDriversCab:
 		return m.driversCab.View()
+	case nodeTreeStateCVProgrammer:
+		return m.cvProgrammer.View()
 	}
 	return ""
 }
