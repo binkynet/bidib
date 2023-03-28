@@ -21,7 +21,7 @@ type Host interface {
 	// Returns nil, false if not found
 	GetNode(addr bidib.Address) (*Node, bool)
 	// Register a callback that gets invoked on every node change
-	RegisterNodeChanged(func(*Node)) context.CancelFunc
+	RegisterNodeChanged(func(NodeEvent)) context.CancelFunc
 	// Close the connections
 	Close() error
 }
@@ -56,9 +56,14 @@ type host struct {
 	conn             transport.Connection
 	intfNode         *Node
 	disabledState    int32
-	nodeChangedEvent Event[*Node]
+	nodeChangedEvent Event[NodeEvent]
 	messageQueue     chan HostMessage
 	cancelQueue      context.CancelFunc
+}
+
+type NodeEvent struct {
+	Node    *Node
+	Payload interface{}
 }
 
 const (
@@ -154,13 +159,13 @@ func (h *host) GetNode(addr bidib.Address) (*Node, bool) {
 }
 
 // Register a callback that gets invoked on every node change
-func (h *host) RegisterNodeChanged(handler func(*Node)) context.CancelFunc {
+func (h *host) RegisterNodeChanged(handler func(NodeEvent)) context.CancelFunc {
 	return h.nodeChangedEvent.Register(handler)
 }
 
 // Call all node changed handlers
-func (h *host) invokeNodeChanged(n *Node) {
-	h.log.Debug().Str("addr", n.Address.String()).Msg("invokeNodeChanged")
+func (h *host) invokeNodeChanged(n NodeEvent) {
+	h.log.Debug().Str("addr", n.Node.Address.String()).Msg("invokeNodeChanged")
 	h.nodeChangedEvent.Invoke(n)
 }
 

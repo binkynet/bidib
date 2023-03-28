@@ -99,7 +99,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 	switch m := m.(type) {
 	case messages.SysMagic:
 		n.Magic = m.Magic
-		n.invokeNodeChanged()
+		n.invokeNodeChanged(nil)
 	case messages.SysUniqueID:
 		n.UniqueID = m.UniqueID
 		n.FingerPrint = m.FingerPrint
@@ -109,7 +109,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 		if n.UniqueID.ClassID().HasSubNodes() {
 			n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
 		}
-		n.invokeNodeChanged()
+		n.invokeNodeChanged(nil)
 	case messages.NodeTabCount:
 		// Reset node table
 		n.table.count = m.TableLength
@@ -125,7 +125,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 			// Fetch next node table entry
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
 		}
-		n.invokeNodeChanged()
+		n.invokeNodeChanged(nil)
 	case messages.NodeTab:
 		n.table.version = m.TableVersion
 		if m.NodeAddress == 0 {
@@ -146,7 +146,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 		if !n.hasCompleteNodeTable() {
 			n.sendMessages(messages.NodeTabGetNext{BaseMessage: baseMsg})
 		}
-		n.invokeNodeChanged()
+		n.invokeNodeChanged(nil)
 	case messages.NodeNew:
 		// Reset node table
 		n.table.count = 0
@@ -154,7 +154,7 @@ func (n *Node) processMessage(m bidib.Message) error {
 		n.table.ready = false
 		// Refetch node table
 		n.sendMessages(messages.NodeTabGetAll{BaseMessage: baseMsg})
-		n.host.invokeNodeChanged(n)
+		n.invokeNodeChanged(nil)
 	case messages.FeatureCount:
 		n.features.mutex.Lock()
 		n.features.all = nil
@@ -233,6 +233,6 @@ func (n *Node) setupExtensions() {
 }
 
 // Call all node changed handlers for this node
-func (n *Node) invokeNodeChanged() {
-	n.host.invokeNodeChanged(n)
+func (n *Node) invokeNodeChanged(payload interface{}) {
+	n.host.invokeNodeChanged(NodeEvent{Node: n, Payload: payload})
 }

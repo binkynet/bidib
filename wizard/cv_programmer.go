@@ -10,30 +10,32 @@ import (
 
 func NewCVProgrammer(n *host.Node) *CVProgrammer {
 	m := &CVProgrammer{
-		node:       n,
-		dccAddress: 3,
-		cv:         1,
+		node: n,
+		pomOpts: host.ProgramOnMainOptions{
+			DccAddress: 3,
+			Cv:         1,
+		},
 	}
 
-	addrBox := NewNumberInput("Address", int(m.dccAddress), 10239)
+	addrBox := NewNumberInput("Address", int(m.pomOpts.DccAddress), 10239)
 	addrBox.MinValue = 1
 	addrBox.OnChanged = func(v int) {
-		m.dccAddress = uint16(v)
+		m.pomOpts.DccAddress = uint32(v)
 	}
 	m.inputs = append(m.inputs, addrBox)
 
-	cvBox := NewNumberInput("CV", int(m.cv), 1024)
+	cvBox := NewNumberInput("CV", int(m.pomOpts.Cv), 1024)
 	cvBox.MinValue = 1
 	cvBox.OnChanged = func(v int) {
-		m.cv = uint16(v)
+		m.pomOpts.Cv = uint32(v)
 	}
 	m.inputs = append(m.inputs, cvBox)
 
-	valueBox := NewNumberInput("Value", 0, 255)
-	valueBox.OnChanged = func(v int) {
-		m.value = uint8(v)
+	m.valueBox = NewNumberInput("Value", 0, 255)
+	m.valueBox.OnChanged = func(v int) {
+		m.pomOpts.Data = uint8(v)
 	}
-	m.inputs = append(m.inputs, valueBox)
+	m.inputs = append(m.inputs, m.valueBox)
 
 	readButton := NewButton("Read", func() {
 		m.readCV()
@@ -55,18 +57,21 @@ type CVProgrammer struct {
 	width, height int
 	node          *host.Node
 	inputs        []inputModel
+	valueBox      *NumberInput
 	focusIndex    int
-	dccAddress    uint16
-	cv            uint16
-	value         uint8
-	busy          bool
+	pomOpts       host.ProgramOnMainOptions
 }
 
 // readCV sends a read command
 func (m *CVProgrammer) readCV() {
 	if m.node != nil {
 		if cs := m.node.Cs(); cs != nil {
-			cs.ProgramOnMain(bidib.BIDIB_CS_POM_RD_BYTE, uint32(m.dccAddress), uint32(m.cv), 0)
+			cs.ProgramOnMain(host.ProgramOnMainOptions{
+				OpCode:     bidib.BIDIB_CS_POM_RD_BYTE,
+				DccAddress: m.pomOpts.DccAddress,
+				Cv:         m.pomOpts.Cv,
+				Data:       0,
+			})
 		}
 	}
 }
@@ -75,7 +80,12 @@ func (m *CVProgrammer) readCV() {
 func (m *CVProgrammer) writeCVByte() {
 	if m.node != nil {
 		if cs := m.node.Cs(); cs != nil {
-			cs.ProgramOnMain(bidib.BIDIB_CS_POM_WR_BYTE, uint32(m.dccAddress), uint32(m.cv), m.value)
+			cs.ProgramOnMain(host.ProgramOnMainOptions{
+				OpCode:     bidib.BIDIB_CS_POM_WR_BYTE,
+				DccAddress: m.pomOpts.DccAddress,
+				Cv:         m.pomOpts.Cv,
+				Data:       m.pomOpts.Data,
+			})
 		}
 	}
 }
@@ -111,6 +121,15 @@ func (m *CVProgrammer) Update(msg tea.Msg) tea.Cmd {
 				m.focusIndex = 0
 			}
 			cmds = append(cmds, m.updateFocus()...)
+		}
+	case nodeChangedMsg:
+		switch msg := msg.Payload.(type) {
+		case host.ProgramOnMainOptions:
+			if m.pomOpts.DccAddress == msg.DccAddress && m.pomOpts.Cv == msg.Cv {
+				m.pomOpts.Data = msg.Data
+				m.valueBox.setValue(int(msg.Data))
+			}
+			return nil
 		}
 	}
 

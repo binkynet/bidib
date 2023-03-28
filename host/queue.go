@@ -145,7 +145,7 @@ func (h *host) processUplinkMessage(msg uplinkMessage) {
 		if h.intfNode.hasCompleteNodeTableRecursive() {
 			h.log.Info().Msg("Enabling Bidib")
 			h.enableSpontaneousMessages()
-			h.invokeNodeChanged(h.intfNode)
+			h.invokeNodeChanged(NodeEvent{Node: h.intfNode})
 		}
 	}
 }

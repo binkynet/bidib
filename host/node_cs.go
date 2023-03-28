@@ -99,17 +99,24 @@ func (ncs *NodeCs) Program(opcode bidib.CsProgOpCode, cv uint16, data uint8) {
 	})
 }
 
+type ProgramOnMainOptions struct {
+	OpCode     bidib.CsPomOpCode
+	DccAddress uint32
+	Cv         uint32
+	Data       uint8
+}
+
 // ProgramOnMain performs a programming operation on main track
 // cv: 1..1024
-func (ncs *NodeCs) ProgramOnMain(opcode bidib.CsPomOpCode, dccAddress uint32, cv uint32, data uint8) {
+func (ncs *NodeCs) ProgramOnMain(opts ProgramOnMainOptions) {
 	ncs.host.postOnQueue(func() {
 		baseMsg := ncs.createBaseMessage()
 		ncs.sendMessages(messages.CsPom{
 			BaseMessage: baseMsg,
-			DccAddress:  dccAddress,
-			OpCode:      opcode,
-			Cv:          cv - 1,
-			Data:        [4]byte{data, 0, 0, 0},
+			DccAddress:  opts.DccAddress,
+			OpCode:      opts.OpCode,
+			Cv:          opts.Cv - 1,
+			Data:        [4]byte{opts.Data, 0, 0, 0},
 		})
 	})
 }
@@ -135,8 +142,15 @@ func (ncs *NodeCs) processMessage(m bidib.Message) error {
 	case messages.CsState:
 		if ncs.actualCsState != m.State {
 			ncs.actualCsState = m.State
-			ncs.invokeNodeChanged()
+			ncs.invokeNodeChanged(nil)
 		}
+	case messages.BmCv:
+		opts := ProgramOnMainOptions{
+			DccAddress: uint32(m.DccAddress),
+			Cv:         uint32(m.Cv) + 1,
+			Data:       m.Data,
+		}
+		ncs.invokeNodeChanged(opts)
 	}
 	return nil
 }

@@ -93,11 +93,11 @@ func (m *NodeTree) reloadListItems() {
 }
 
 type selectCurrentNodeMsg *host.Node
-type nodeChangedMsg *host.Node
+type nodeChangedMsg host.NodeEvent
 
 func (m NodeTree) Init() tea.Cmd {
-	m.host.RegisterNodeChanged(func(n *host.Node) {
-		m.nodeChanges <- n
+	m.host.RegisterNodeChanged(func(n host.NodeEvent) {
+		m.nodeChanges <- nodeChangedMsg(n)
 	})
 	return tea.Batch(
 		func() tea.Msg {
@@ -182,6 +182,9 @@ func (m NodeTree) Update(msg tea.Msg) (NodeTree, tea.Cmd) {
 	case nodeChangedMsg:
 		m.reloadListItems()
 		m.info.reloadInfo()
+		if msg.Payload != nil {
+			cmds = append(cmds, m.updateCVProgrammer(msg))
+		}
 		cmds = append(cmds, m.onNodeChanged())
 	default:
 		cmds = append(cmds, m.updateList(msg))
