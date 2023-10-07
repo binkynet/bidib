@@ -83,7 +83,16 @@ func (m BmDynState) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
 }
 
 func (m BmDynState) String() string {
-	return fmt.Sprintf("%T addr=%s dccaddr=%d mnum=%d dynnum=%d value=%d", m, m.Address, m.DccAddress, m.MNum, m.DynNum, m.Value)
+	switch m.DynNum {
+	case 1:
+		return fmt.Sprintf("%T addr=%s dccaddr=%d signalquality=%d", m, m.Address, m.DccAddress, m.Value)
+	case 2:
+		return fmt.Sprintf("%T addr=%s dccaddr=%d temperature=%d", m, m.Address, m.DccAddress, m.Value)
+	case 3:
+		return fmt.Sprintf("%T addr=%s dccaddr=%d batterylevel=%d", m, m.Address, m.DccAddress, m.Value)
+	default:
+		return fmt.Sprintf("%T addr=%s dccaddr=%d mnum=%d dynnum=%d value=%d", m, m.Address, m.DccAddress, m.MNum, m.DynNum, m.Value)
+	}
 }
 
 func decodeBmDynState(addr bidib.Address, data []byte) (BmDynState, error) {
