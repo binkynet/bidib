@@ -50,6 +50,10 @@ func decodeMessage(src []byte) (MessageType, Address, SequenceNumber, []byte, []
 	addressIdx := 0
 	var addr Address
 	for {
+		if len(src) == 0 {
+			// Found invalid address
+			return 0, Address{}, 0, nil, nil, fmt.Errorf("Address must end with 0")
+		}
 		if src[0] == 0 {
 			// We're done with address
 			src = src[1:]
