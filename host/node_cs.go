@@ -32,8 +32,9 @@ func (ncs *NodeCs) Go() {
 func (ncs *NodeCs) repeatGo() {
 	wdTimeout, _ := ncs.GetFeature(bidib.FEATURE_GEN_WATCHDOG)
 	if wdTimeout == 0 {
+		wdTimeout = 20
 		// No watchdog timeout
-		return
+		//return
 	}
 	delay := time.Millisecond * 100 * time.Duration(wdTimeout/2)
 	ncs.host.postDelayedOnQueue(func() {
