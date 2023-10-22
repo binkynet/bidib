@@ -60,7 +60,7 @@ func (sc *serialConnection) open() error {
 	}
 	var lastError error
 	sysGetMagic := messages.SysGetMagic{}
-	for _, baud := range []int{1000000, 115200, 19200} {
+	for _, baud := range []int{ /*1000000,*/ 115200, 19200} {
 		sc.log.Debug().
 			Int("baud", baud).
 			Str("portName", c.Name).

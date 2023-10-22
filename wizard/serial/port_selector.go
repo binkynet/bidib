@@ -96,7 +96,7 @@ func listSerialPorts() []portPath {
 		if entry.IsDir() {
 			continue
 		}
-		if strings.HasPrefix(entry.Name(), "tty.") {
+		if strings.HasPrefix(entry.Name(), "tty") {
 			result = append(result, portPath(filepath.Join("/dev", entry.Name())))
 		}
 	}
