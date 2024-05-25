@@ -152,6 +152,8 @@ func (ncs *NodeCs) processMessage(m bidib.Message) error {
 			Data:       m.Data,
 		}
 		ncs.invokeNodeChanged(opts)
+	case messages.BmDynState:
+		ncs.host.invokeDynStateChanged(m)
 	}
 	return nil
 }

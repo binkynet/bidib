@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync/atomic"
 
@@ -22,6 +23,8 @@ type Host interface {
 	GetNode(addr bidib.Address) (*Node, bool)
 	// Register a callback that gets invoked on every node change
 	RegisterNodeChanged(func(NodeEvent)) context.CancelFunc
+	// Register a callback that gets invoked on every reported dynamic state change
+	RegisterDynStateChanged(func(messages.BmDynState)) context.CancelFunc
 	// Close the connections
 	Close() error
 }
@@ -33,6 +36,11 @@ type Config struct {
 
 const (
 	messageQueueBufLen = 64
+)
+
+var (
+	// Thrown when host is closed.
+	ErrClosed = errors.New("host is closed")
 )
 
 // New constructs a new host process with given config
@@ -59,6 +67,8 @@ type host struct {
 	nodeChangedEvent Event[NodeEvent]
 	messageQueue     chan HostMessage
 	cancelQueue      context.CancelFunc
+	closed           uint32
+	dynStateEvent    Event[messages.BmDynState]
 }
 
 type NodeEvent struct {
@@ -118,6 +128,7 @@ func (h *host) start() error {
 // Close any connections
 func (h *host) Close() error {
 	var err error
+	atomic.AddUint32(&h.closed, 1)
 	if conn := h.conn; conn != nil {
 		h.conn = nil
 		err = conn.Close()
@@ -126,6 +137,11 @@ func (h *host) Close() error {
 		cancel()
 	}
 	return err
+}
+
+// Has Close been called?
+func (h *host) IsClosed() bool {
+	return atomic.LoadUint32(&h.closed) != 0
 }
 
 // Returns the root of the node tree
@@ -167,6 +183,17 @@ func (h *host) RegisterNodeChanged(handler func(NodeEvent)) context.CancelFunc {
 func (h *host) invokeNodeChanged(n NodeEvent) {
 	h.log.Debug().Str("addr", n.Node.Address.String()).Msg("invokeNodeChanged")
 	h.nodeChangedEvent.Invoke(n)
+}
+
+// Register a callback that gets invoked on every dynamic state change
+func (h *host) RegisterDynStateChanged(handler func(messages.BmDynState)) context.CancelFunc {
+	return h.dynStateEvent.Register(handler)
+}
+
+// Call all node changed handlers
+func (h *host) invokeDynStateChanged(n messages.BmDynState) {
+	h.log.Debug().Str("addr", n.Address.String()).Msg("invokeDynStateChanged")
+	h.dynStateEvent.Invoke(n)
 }
 
 // Send a DISABLE message to the interface, blocking spontaneous messages.

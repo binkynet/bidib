@@ -73,6 +73,9 @@ func (h *host) postDelayedOnQueue(cb func(), delay time.Duration, timeout ...tim
 // Post the given message onto the message queue
 // This is a low level function. Prefer using postOnQueue.
 func (h *host) enqueueMessage(msg HostMessage, timeout time.Duration) error {
+	if h.IsClosed() {
+		return ErrClosed
+	}
 	select {
 	case h.messageQueue <- msg:
 		return nil

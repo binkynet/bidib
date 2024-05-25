@@ -53,7 +53,7 @@ func (lb *logBuffer) Write(p []byte) (int, error) {
 		case lb.changed <- logChangedMsg{}:
 			// Ok
 		case <-time.After(time.Millisecond * 500):
-			panic(p)
+			//panic(p)
 			// Ignore
 		}
 	}()
