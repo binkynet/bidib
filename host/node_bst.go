@@ -9,11 +9,31 @@ import (
 type NodeBst struct {
 	*Node
 	actualBstState bidib.BstState
+	actualBstDiag  struct {
+		Current     string
+		Voltage     string
+		Temperature string
+	}
 }
 
 // GetState returns the last reported BST state of the node.
 func (ncs *NodeBst) GetState() bidib.BstState {
 	return ncs.actualBstState
+}
+
+// Gets last reported current
+func (ncs *NodeBst) GetCurrent() string {
+	return ncs.actualBstDiag.Current
+}
+
+// Gets last reported voltage
+func (ncs *NodeBst) GetVoltage() string {
+	return ncs.actualBstDiag.Voltage
+}
+
+// Gets last reported temperature
+func (ncs *NodeBst) GetTemperature() string {
+	return ncs.actualBstDiag.Temperature
 }
 
 // Set the Booster in On state.
@@ -47,6 +67,20 @@ func (ncs *NodeBst) processMessage(m bidib.Message) error {
 			ncs.invokeNodeChanged(nil)
 		}
 		ncs.host.invokeBstStateChanged(m)
+	case messages.BstDiag:
+		changed := false
+		if compareAndAssign(&ncs.actualBstDiag.Current, m.Current()) {
+			changed = true
+		}
+		if compareAndAssign(&ncs.actualBstDiag.Voltage, m.Voltage()) {
+			changed = true
+		}
+		if compareAndAssign(&ncs.actualBstDiag.Temperature, m.Temperature()) {
+			changed = true
+		}
+		if changed {
+			ncs.invokeNodeChanged(nil)
+		}
 	}
 	return nil
 }

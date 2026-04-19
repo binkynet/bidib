@@ -54,6 +54,60 @@ func (m BstDiag) String() string {
 	return fmt.Sprintf("%T addr=%s i=%02x v=%02x temp=%02x", m, m.Address, m.DiagI, m.DiagV, m.DiagTemp)
 }
 
+// Current in mA
+func (m BstDiag) Current() string {
+	i := m.DiagI
+	if i == 0 {
+		return "0 mA"
+	}
+	if i >= 1 && i <= 15 {
+		return fmt.Sprintf("%d mA", int(i))
+	}
+	if i >= 16 && i <= 63 {
+		return fmt.Sprintf("%d mA", int(i-12)*4)
+	}
+	if i >= 64 && i <= 127 {
+		return fmt.Sprintf("%d mA", int(i-51)*16)
+	}
+	if i >= 128 && i <= 191 {
+		return fmt.Sprintf("%d mA", int(i-108)*64)
+	}
+	if i >= 192 && i <= 250 {
+		return fmt.Sprintf("%d mA", int(i-171)*256)
+	}
+	if i >= 251 && i <= 253 {
+		return "reserved"
+	}
+	if i == 254 {
+		return "overcurrent"
+	}
+	return "unknown"
+}
+
+// Voltage
+func (m BstDiag) Voltage() string {
+	v := m.DiagV
+	if v >= 0 && v <= 250 {
+		return fmt.Sprintf("%d mV", int(v)*100)
+	}
+	if v >= 251 && v <= 254 {
+		return "reserved"
+	}
+	return "unknown"
+}
+
+// Temperature
+func (m BstDiag) Temperature() string {
+	t := m.DiagTemp
+	if t >= 0 && t <= 127 {
+		return fmt.Sprintf("%d C", int(t))
+	}
+	if t >= 128 && t <= 225 {
+		return "reserved"
+	}
+	return fmt.Sprintf("neg %d C", int(t))
+}
+
 func decodeBstDiag(addr bidib.Address, data []byte) (BstDiag, error) {
 	var result BstDiag
 	result.Address = addr
