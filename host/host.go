@@ -25,6 +25,10 @@ type Host interface {
 	RegisterNodeChanged(func(NodeEvent)) context.CancelFunc
 	// Register a callback that gets invoked on every reported dynamic state change
 	RegisterDynStateChanged(func(messages.BmDynState)) context.CancelFunc
+	// Register a callback that gets invoked on every reported BmAddress change
+	RegisterBmAddressChanged(func(messages.BmAddress)) context.CancelFunc
+	// Register a callback that gets invoked on every reported BstState change
+	RegisterBstStateChanged(func(messages.BstState)) context.CancelFunc
 	// Close the connections
 	Close() error
 }
@@ -69,6 +73,8 @@ type host struct {
 	cancelQueue      context.CancelFunc
 	closed           uint32
 	dynStateEvent    Event[messages.BmDynState]
+	bmAddressEvent   Event[messages.BmAddress]
+	bstStateEvent    Event[messages.BstState]
 }
 
 type NodeEvent struct {
@@ -194,6 +200,28 @@ func (h *host) RegisterDynStateChanged(handler func(messages.BmDynState)) contex
 func (h *host) invokeDynStateChanged(n messages.BmDynState) {
 	h.log.Debug().Str("addr", n.Address.String()).Msg("invokeDynStateChanged")
 	h.dynStateEvent.Invoke(n)
+}
+
+// Register a callback that gets invoked on every BmAddress change
+func (h *host) RegisterBmAddressChanged(handler func(messages.BmAddress)) context.CancelFunc {
+	return h.bmAddressEvent.Register(handler)
+}
+
+// Call all BmAddress changed handlers
+func (h *host) invokeBmAdressChanged(n messages.BmAddress) {
+	h.log.Debug().Str("addr", n.Address.String()).Msg("invokeBmAdressChanged")
+	h.bmAddressEvent.Invoke(n)
+}
+
+// Register a callback that gets invoked on every BstState change
+func (h *host) RegisterBstStateChanged(handler func(messages.BstState)) context.CancelFunc {
+	return h.bstStateEvent.Register(handler)
+}
+
+// Call all BstState changed handlers
+func (h *host) invokeBstStateChanged(n messages.BstState) {
+	h.log.Debug().Str("addr", n.Address.String()).Msg("invokeBmAdressChanged")
+	h.bstStateEvent.Invoke(n)
 }
 
 // Send a DISABLE message to the interface, blocking spontaneous messages.

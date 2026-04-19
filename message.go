@@ -36,6 +36,9 @@ func SplitPackageAndProcessMessages(src []byte, proc MessageProcessor) error {
 // decodeMessage decodes the given byte slice into the its raw message parts.
 // Returns: type, address, seqNum, data, remaining, error
 func decodeMessage(src []byte) (MessageType, Address, SequenceNumber, []byte, []byte, error) {
+	if len(src) < 1 {
+		return 0, Address{}, 0, nil, nil, fmt.Errorf("Got invalid (empty) message")
+	}
 	// Fetch length (this excludes msgLength itself)
 	msgLength := src[0]
 	// Skip msgLength

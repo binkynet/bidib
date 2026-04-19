@@ -164,6 +164,8 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 		return decodeCsProgState(addr, data)
 
 	// Occupancy uplink
+	case bidib.MSG_BM_ADDRESS:
+		return decodeBmAddress(addr, data)
 	case bidib.MSG_BM_CV:
 		return decodeBmCv(addr, data)
 	case bidib.MSG_BM_SPEED:

@@ -2,6 +2,7 @@ package messages
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/binkynet/bidib"
 )
@@ -105,5 +106,61 @@ func decodeBmDynState(addr bidib.Address, data []byte) (BmDynState, error) {
 	result.DccAddress = readUint16(data[1:])
 	result.DynNum = data[3]
 	result.Value = data[4]
+	return result, nil
+}
+
+// With this message, the detection of a loco in a particular section will be reported.
+// Followed by 3 or more bytes: MNUM, ADDRL, ADDRH, [ADDRL, ADDRH], ...
+// If only one decoder is present in the section, there is a 3 byte message.
+// If more than one decoder is present in the section, the addresses of the decoder will
+// be transferred in the following byte pairs ADDRL, ADDRH.
+// A maximum of 16 addresses can be reported in one section.
+// This limit also applies to global detectors, address detection at those is intended
+// only for small setups (e.g. a programming track).
+type BmAddress struct {
+	BaseMessage
+	// Local number of the occupancy detector. Value range 0…127
+	MNum uint8
+	// Detected addresses
+	DccAddresses []uint16
+}
+
+func (m BmAddress) Encode(write func(uint8), seqNum bidib.SequenceNumber) {
+	data := make([]byte, 1+len(m.DccAddresses))
+	data[0] = m.MNum
+	idx := 1
+	for _, dccAddr := range m.DccAddresses {
+		writeUint16(data[idx:], dccAddr)
+		idx += 2
+	}
+	bidib.EncodeMessage(write, bidib.MSG_BM_ADDRESS, m.Address, seqNum, data)
+}
+
+func (m BmAddress) String() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "mnum=%d ", m.MNum)
+	for _, dccAddr := range m.DccAddresses {
+		fmt.Fprintf(&b, "dccaddr=%d ", dccAddr)
+	}
+	return strings.TrimSpace(b.String())
+}
+
+func decodeBmAddress(addr bidib.Address, data []byte) (BmAddress, error) {
+	var result BmAddress
+	if err := validateMinDataLength(data, 3); err != nil {
+		return result, err
+	}
+	result.Address = addr
+	result.MNum = data[0]
+	data = data[1:]
+	for {
+		if len(data) >= 2 {
+			dccAddr := readUint16(data)
+			result.DccAddresses = append(result.DccAddresses, dccAddr)
+			data = data[2:]
+		} else {
+			break
+		}
+	}
 	return result, nil
 }
