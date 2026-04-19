@@ -171,6 +171,13 @@ func Parse(mType bidib.MessageType, addr bidib.Address, seqNum bidib.SequenceNum
 	case bidib.MSG_BM_DYN_STATE:
 		return decodeBmDynState(addr, data)
 
+	// Booster
+	case bidib.MSG_BOOST_STAT:
+		return decodeBstState(addr, data)
+	//case bidib.MSG_BOOST_CURRENT:
+	case bidib.MSG_BOOST_DIAGNOSTIC:
+		return decodeBstDiag(addr, data)
+
 	default:
 		return nil, fmt.Errorf("failed to parse message of type %s", mType)
 	}

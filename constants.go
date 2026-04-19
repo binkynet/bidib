@@ -62,18 +62,18 @@ const (
 	//
 	//===============================================================================
 
-	BIDIB_BST_STATE_OFF         = 0x00 // Booster turned off
-	BIDIB_BST_STATE_OFF_SHORT   = 0x01 // Booster is off, output shortend
-	BIDIB_BST_STATE_OFF_HOT     = 0x02 // Booster off and too hot
-	BIDIB_BST_STATE_OFF_NOPOWER = 0x03 // Booster has no mains
-	BIDIB_BST_STATE_OFF_GO_REQ  = 0x04 // Booster off and local go request is present
-	BIDIB_BST_STATE_OFF_HERE    = 0x05 // Booster off (was turned off by a local key)
-	BIDIB_BST_STATE_OFF_NO_DCC  = 0x06 // Booster is off (no DCC input)
-	BIDIB_BST_STATE_ON          = 0x80 // Booster on
-	BIDIB_BST_STATE_ON_LIMIT    = 0x81 // Booster on and critical current flows
-	BIDIB_BST_STATE_ON_HOT      = 0x82 // Booster on and is getting hot
-	BIDIB_BST_STATE_ON_STOP_REQ = 0x83 // Booster on and a local stop request is present
-	BIDIB_BST_STATE_ON_HERE     = 0x84 // Booster on (was turned on by a local key)
+	BIDIB_BST_STATE_OFF         BstState = 0x00 // Booster turned off
+	BIDIB_BST_STATE_OFF_SHORT   BstState = 0x01 // Booster is off, output shortend
+	BIDIB_BST_STATE_OFF_HOT     BstState = 0x02 // Booster off and too hot
+	BIDIB_BST_STATE_OFF_NOPOWER BstState = 0x03 // Booster has no mains
+	BIDIB_BST_STATE_OFF_GO_REQ  BstState = 0x04 // Booster off and local go request is present
+	BIDIB_BST_STATE_OFF_HERE    BstState = 0x05 // Booster off (was turned off by a local key)
+	BIDIB_BST_STATE_OFF_NO_DCC  BstState = 0x06 // Booster is off (no DCC input)
+	BIDIB_BST_STATE_ON          BstState = 0x80 // Booster on
+	BIDIB_BST_STATE_ON_LIMIT    BstState = 0x81 // Booster on and critical current flows
+	BIDIB_BST_STATE_ON_HOT      BstState = 0x82 // Booster on and is getting hot
+	BIDIB_BST_STATE_ON_STOP_REQ BstState = 0x83 // Booster on and a local stop request is present
+	BIDIB_BST_STATE_ON_HERE     BstState = 0x84 // Booster on (was turned on by a local key)
 
 	BIDIB_BST_DIAG_I = 0x00 // Current
 	BIDIB_BST_DIAG_V = 0x01 // Voltage
