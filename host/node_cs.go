@@ -156,8 +156,6 @@ func (ncs *NodeCs) processMessage(m bidib.Message) error {
 		ncs.host.invokeDynStateChanged(m)
 	case messages.BmAddress:
 		ncs.host.invokeBmAdressChanged(m)
-	case messages.BstState:
-		ncs.host.invokeBstStateChanged(m)
 	}
 	return nil
 }

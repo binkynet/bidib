@@ -45,7 +45,8 @@ type Node struct {
 		all   map[bidib.FeatureID]uint8
 	}
 	extensions struct {
-		cs *NodeCs
+		cs  *NodeCs
+		bst *NodeBst
 	}
 }
 
@@ -86,6 +87,12 @@ func (n *Node) Reset() {
 // If this node does not have a DCC signal generator, the result is nil.
 func (n *Node) Cs() *NodeCs {
 	return n.extensions.cs
+}
+
+// Gets the booster extension.
+// If this node does not have a booster, the result is nil.
+func (n *Node) Bst() *NodeBst {
+	return n.extensions.bst
 }
 
 // Return a base message to include in all specific messages send to this node.
@@ -174,6 +181,11 @@ func (n *Node) processMessage(m bidib.Message) error {
 				return err
 			}
 		}
+		if n.extensions.bst != nil {
+			if err := n.extensions.bst.processMessage(m); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -229,6 +241,11 @@ func (n *Node) setupExtensions() {
 		n.extensions.cs = &NodeCs{Node: n}
 	} else {
 		n.extensions.cs = nil
+	}
+	if n.UniqueID.ClassID().HasBoosterFunctions() {
+		n.extensions.bst = &NodeBst{Node: n}
+	} else {
+		n.extensions.bst = nil
 	}
 }
 
