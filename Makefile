@@ -1,3 +1,8 @@
+ifndef BINKYHOST
+	BINKYHOST := 192.168.77.1
+endif
+BINKYHOSTUSER := pi
+
 all: dependencies
 	go build ./...
 	mkdir -p build
@@ -14,4 +19,4 @@ dependencies:
 	go install golang.org/x/tools/cmd/stringer
 
 deploy:
-	scp build/linux/arm/bidibWizard pi@192.168.77.1:/home/pi/
+	scp build/linux/arm/bidibWizard $(BINKYHOSTUSER)@$(BINKYHOST):/home/$(BINKYHOSTUSER)/
